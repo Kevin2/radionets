@@ -113,6 +113,7 @@ def read_config(config):
             sim_conf["num_pointlike_gaussians"] = config["gaussians"][
                 "num_pointlike_gaussians"
             ]
+            sim_conf["source_list"] = config["gaussians"]["source_list"]
             click.echo("Adding pointlike gaussians.")
         else:
             sim_conf["num_pointlike_gaussians"] = None
