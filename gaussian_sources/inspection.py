@@ -7,17 +7,17 @@ from skimage.feature import blob_log
 from math import sqrt
 import pytorch_msssim
 
-# make nice Latex friendly plots
-mpl.use("pgf")
-mpl.rcParams.update(
-    {
-        "font.size": 12,
-        "font.family": "sans-serif",
-        "text.usetex": True,
-        "pgf.rcfonts": False,
-        "pgf.texsystem": "lualatex",
-    }
-)
+# # make nice Latex friendly plots
+# mpl.use("pgf")
+# mpl.rcParams.update(
+#     {
+#         "font.size": 12,
+#         "font.family": "sans-serif",
+#         "text.usetex": True,
+#         "pgf.rcfonts": False,
+#         "pgf.texsystem": "lualatex",
+#     }
+# )
 
 plot_mode = "pdf"
 

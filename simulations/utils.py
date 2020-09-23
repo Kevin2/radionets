@@ -133,6 +133,7 @@ def read_config(config):
 
     sim_conf["amp_phase"] = config["sampling_options"]["amp_phase"]
     sim_conf["real_imag"] = config["sampling_options"]["real_imag"]
+    sim_conf["source_list"] = config["sampling_options"]["source_list"]
     sim_conf["antenna_config_path"] = config["sampling_options"]["antenna_config_path"]
     sim_conf["specific_mask"] = config["sampling_options"]["specific_mask"]
     sim_conf["lon"] = config["sampling_options"]["lon"]

@@ -3,6 +3,7 @@ from torch import nn
 import torch.nn.functional as F
 from torch.nn.modules.utils import _pair
 from math import sqrt
+from pathlib import Path
 
 
 class Lambda(nn.Module):
@@ -322,6 +323,8 @@ def load_pre_model(learn, pre_path, visualize=False, lr_find=False):
 
 def save_model(learn, model_path):
     state = learn.model.state_dict()
+    p = Path(model_path).parent
+    p.mkdir(parents=True, exist_ok=True)
     torch.save(
         {
             "epoch": learn.epoch,
