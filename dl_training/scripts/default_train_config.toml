@@ -18,6 +18,7 @@ arch_name = "filter_deep"
 loss_func = "mse"
 num_epochs = 2
 inspection = false
+source_list = false
 
 [hypers]
 batch_size = 64

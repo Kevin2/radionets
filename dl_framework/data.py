@@ -48,13 +48,14 @@ class Dataset:
 
 
 class h5_dataset:
-    def __init__(self, bundle_paths, tar_fourier, amp_phase=None):
+    def __init__(self, bundle_paths, tar_fourier, source_list, amp_phase=None):
         """
         Save the bundle paths and the number of bundles in one file.
         """
         self.bundles = bundle_paths
         self.num_img = len(self.open_bundle(self.bundles[0], "x"))
         self.tar_fourier = tar_fourier
+        self.source_list = source_list
         self.amp_phase = amp_phase
 
     def __call__(self):
@@ -67,8 +68,12 @@ class h5_dataset:
         return len(self.bundles) * self.num_img
 
     def __getitem__(self, i):
-        x = self.open_image("x", i)
-        y = self.open_image("y", i)
+        if self.source_list:
+            x = self.open_image("x", i)
+            y = self.open_image("z", i)
+        else:
+            x = self.open_image("x", i)
+            y = self.open_image("y", i)
         return x, y
 
     def open_bundle(self, bundle_path, var):
@@ -251,7 +256,7 @@ def mean_and_std(array):
     return array.mean(), array.std()
 
 
-def load_data(data_path, mode, fourier=False):
+def load_data(data_path, mode, fourier=False, source_list=False):
     """
     Load data set from a directory and return it as h5_dataset.
 
@@ -271,5 +276,5 @@ def load_data(data_path, mode, fourier=False):
     """
     bundle_paths = get_bundles(data_path)
     data = [path for path in bundle_paths if re.findall("samp_" + mode, path.name)]
-    ds = h5_dataset(data, tar_fourier=fourier)
+    ds = h5_dataset(data, tar_fourier=fourier, source_list=source_list)
     return ds
