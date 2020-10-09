@@ -251,11 +251,15 @@ def plot_results(inp, pred, truth, model_path, save=False):
 
 
 def create_inspection_plots(learn, train_conf):
-    test_ds = load_data(train_conf["data_path"], "test", fourier=train_conf["fourier"])
+    test_ds = load_data(train_conf["data_path"], "test", fourier=train_conf["fourier"], source_list=train_conf["source_list"])
     img_test, img_true = get_images(test_ds, 5, train_conf["norm_path"])
     pred = eval_model(img_test.cuda(), learn.model)
     model_path = train_conf["model_path"]
     out_path = Path(model_path).parent
+    print(reshape_2d(img_true))
+    print("-----------------------------------------------------------")
+    print("-----------------------------------------------------------")
+    print(reshape_2d(pred.cpu()))
     if train_conf["fourier"]:
         for i in range(len(img_test)):
             visualize_with_fourier(i, img_test[i], pred[i], img_true[i], amp_phase=True, out_path=out_path)

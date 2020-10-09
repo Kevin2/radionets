@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from torch import nn
 import torch.nn.functional as F
 from torch.nn.modules.utils import _pair
@@ -34,11 +35,27 @@ def fft(x):
     # arr_shift = torch.roll(arr_fft, shift, axes)
     return arr_fft
 
+def fft_(x):
+    """
+    Layer that performs an inverse fast Fourier_Transformation on a non 
+    flattened Tensor. First dimension should be the number of the image.
+    Second should be if real or imaginary. Best if x = euler_(y)
+    """
+    X = x.permute(0,2,3,1)
+    X = torch.ifft(X,2)
+
+    arr = (X[:,:,:,0]**2 + X[:,:,:,1]**2)**0.5
+    return arr
+
+def unsqueeze1(x):
+    return x.unsqueeze(1)
 
 def shape(x):
     print(x.shape)
     return x
 
+def absolute(x):
+    return torch.abs(x)
 
 def euler(x):
     img_size = x.size(1) // 2
@@ -51,6 +68,20 @@ def euler(x):
     arr = torch.stack((arr_real, arr_imag), dim=-1).permute(0, 2, 1)
     return arr
 
+def euler_(x):
+    """
+    Same as euler, but for non flattened Tensors.
+    """
+    if type(x) == np.ndarray:
+        x = torch.from_numpy(x)
+    amp = x[:,0]
+    pha = x[:,1]
+
+    real = amp * torch.cos(pha)
+    imag = amp * torch.sin(pha)
+
+    arr = torch.stack((real, imag), dim=1)
+    return arr
 
 def flatten(x):
     return x.reshape(x.shape[0], -1)

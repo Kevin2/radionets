@@ -331,12 +331,12 @@ class data_aug(Callback):
 class SaveCallback(Callback):
     _order = 95
 
-    def __init__(self, model_path):
+    def __init__(self, model_path, model_name):
         self.model_path = "/".join(model_path.split("/", 2)[:2])
-
+        self.model_name = model_name
     def after_epoch(self):
         if round(self.n_epochs) % 10 == 0:
             save_model(
-                self, self.model_path + "/temp_{}.model".format(round(self.n_epochs))
+                self, self.model_path + f"/temp_{round(self.n_epochs)}_{self.model_name}"
             )
             print("\nFinished Epoch {}, model saved.\n".format(round(self.n_epochs)))

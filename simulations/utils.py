@@ -5,6 +5,7 @@ import pickle
 import os
 import sys
 import re
+import itertools
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -89,6 +90,27 @@ def check_outpath(outpath, data_format, batch_mode=False):
         sim_sampled = True
     return sim_fft, sim_sampled
 
+def check_samp(outpath):
+    path = Path(outpath)
+    exists = path.exists()
+    if exists is True:
+        samp = {p for p in path.rglob("*samp*." + "h5") if p.is_file()}
+        return samp
+    else:
+        print('No such directory')
+        return None
+
+def get_samp_files(do, path):
+    if do:
+        l = []
+        for mode in ['train', 'valid', 'test']:
+            bundle_paths = get_fft_bundle_paths(path, 'samp', mode)
+            l.append(bundle_paths)
+        bundles = list(itertools.chain(*l))
+        return np.array(bundles)
+    else:
+        print('There are no sampled files in this directory')
+        return None
 
 def read_config(config):
     sim_conf = {}
@@ -133,7 +155,6 @@ def read_config(config):
 
     sim_conf["amp_phase"] = config["sampling_options"]["amp_phase"]
     sim_conf["real_imag"] = config["sampling_options"]["real_imag"]
-    sim_conf["source_list"] = config["sampling_options"]["source_list"]
     sim_conf["antenna_config_path"] = config["sampling_options"]["antenna_config_path"]
     sim_conf["specific_mask"] = config["sampling_options"]["specific_mask"]
     sim_conf["lon"] = config["sampling_options"]["lon"]

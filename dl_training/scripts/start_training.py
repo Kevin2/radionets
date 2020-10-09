@@ -39,7 +39,11 @@ def main(configuration_path):
     )
 
     # get image size
-    train_conf["image_size"] = data.train_ds[0][0][0].shape[1]
+    source_list = train_conf["source_list"]
+    if source_list:
+        train_conf["image_size"] = data.train_ds[0][0].shape[1]
+    else:
+        train_conf["image_size"] = data.train_ds[0][0][0].shape[1]
 
     # define architecture
     arch = define_arch(

@@ -17,6 +17,7 @@ from dl_framework.loss_functions import (
     loss_mse_msssim_phase,
     loss_mse_msssim_amp,
     loss_msssim_amp,
+    list_loss,
 )
 from dl_framework.callbacks import (
     AvgStatsCallback,
@@ -207,8 +208,8 @@ def define_learner(
     if not lr_find:
         cbfs.extend([
             Recorder,
-            partial(AvgStatsCallback, metrics=[nn.MSELoss(), nn.L1Loss()]),
-            partial(SaveCallback, model_path=model_path),
+            partial(AvgStatsCallback, metrics=[]),
+            partial(SaveCallback, model_path=model_path, model_name=model_name),
         ])
     if not test and not lr_find:
         cbfs.extend([
@@ -242,6 +243,8 @@ def define_learner(
         loss_func = loss_mse_msssim_amp
     elif loss_func == "msssim_amp":
         loss_func = loss_msssim_amp
+    elif loss_func == "list_loss":
+        loss_func = list_loss
     else:
         print("\n No matching loss function or architecture! Exiting. \n")
         sys.exit(1)

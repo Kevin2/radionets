@@ -344,3 +344,25 @@ def loss_mse_msssim(x, y):
     )
 
     return loss_amp + loss_phase
+
+def list_loss(x, y):
+    """
+    Adapted loss for source list output.
+    """
+    x = x.reshape(-1, 5, 5)
+    inp_pos = x[:,:,:2]
+    inp_wdth = x[:,:,2:4]
+    inp_amp = x[:,:,4]
+
+    tar_pos = y[:,:,:2]
+    tar_wdth = y[:,:,2:4]
+    tar_amp = y[:,:,4]
+
+    loss_pos = nn.SmoothL1Loss()
+    loss_pos = loss_pos(inp_pos, tar_pos)
+
+    loss_amp_wdth = nn.MSELoss()
+    loss_amp = loss_amp_wdth(inp_amp, tar_amp)
+    loss_wdth = loss_amp_wdth(inp_wdth, tar_wdth)
+
+    return loss_pos + loss_amp + loss_wdth

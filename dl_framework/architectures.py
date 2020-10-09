@@ -5,6 +5,10 @@ from dl_framework.model import (
     Lambda,
     flatten,
     fft,
+    fft_,
+    euler_,
+    unsqueeze1,
+    absolute,
     deconv,
     double_conv,
     cut_off,
@@ -26,6 +30,52 @@ def test():
 	Lambda(flatten),
 	nn.Linear(7938,7938),
 	Lambda(reshape)
+    )
+    return arch
+
+def cnn_list():
+    """
+    conv-layer with source list as target, do fft beforehand so input=dirtyim.
+    """
+    arch = nn.Sequential(
+        #Lambda(euler_),
+        #Lambda(fft_),
+        Lambda(unsqueeze1),
+        *conv(1, 5, (3,3), 1, 0),
+        *conv(5, 25, (3,3), 1, 0),
+        nn.MaxPool2d((3,3), 2), # 25*29*29
+        Lambda(flatten),
+        nn.Linear(21025,5000),
+        nn.ReLU(),
+        nn.Linear(5000,500),
+        nn.ReLU(),
+        nn.Linear(500,5*5),
+        #Lambda(absolute),
+    )
+    return arch
+
+def cnn_list_fft():
+    """
+    conv-layer with source list as target, do fft here.
+    """
+    arch = nn.Sequential(
+        Lambda(euler_),
+        Lambda(fft_),
+        Lambda(unsqueeze1),
+        nn.BatchNorm2d(64)
+        *conv(1, 5, (3,3), 1, 0),
+        *conv(5, 25, (3,3), 1, 0),
+        nn.Dropout2d(),
+        nn.MaxPool2d((3,3),2),
+        *conv(25,50, (3,3), 1, 0),#50*27*27
+        *conv(50, 75, (3,3), 1, 0), #75*25*25
+        nn.MaxPool2d((3,3), 2),#75*12*12
+        Lambda(flatten),
+        nn.Linear(10800,2500),
+        nn.ReLU(),
+        nn.Linear(2500,250),
+        nn.ReLu(),
+        nn.Linear(250,5*5),
     )
     return arch
 
