@@ -43,6 +43,7 @@ def load_pretrained_model(arch_name, model_path):
     arch: architecture object
         architecture with pretrained weigths
     """
+
     arch = getattr(architecture, arch_name)()
     load_pre_model(arch, model_path, visualize=True)
     return arch
@@ -73,7 +74,7 @@ def get_images(test_ds, num_images, norm_path):
     norm = "none"
     if norm_path != "none":
         norm = pd.read_csv(norm_path)
-    img_test = do_normalisation(img_test, norm)
+        img_test = do_normalisation(img_test, norm)
     img_true = test_ds[rand][1]
     if num_images == 1:
         img_test = img_test.unsqueeze(0)
@@ -97,8 +98,8 @@ def eval_model(img, model):
     pred: n 1d arrays
         predicted images
     """
-    if len(img.shape) == (3):
-        img = img.unsqueeze(0)
+    #if len(img.shape) == (3):
+        #img = img.unsqueeze(0)
     model.eval()
     with torch.no_grad():
         pred = model(img.float())
@@ -252,22 +253,22 @@ def plot_results(inp, pred, truth, model_path, save=False):
 
 def create_inspection_plots(learn, train_conf):
     test_ds = load_data(train_conf["data_path"], "test", fourier=train_conf["fourier"], source_list=train_conf["source_list"])
-    img_test, img_true = get_images(test_ds, 5, train_conf["norm_path"])
+    img_test, img_true = get_images(test_ds, 5, train_conf["norm_path"])# 5
     pred = eval_model(img_test.cuda(), learn.model)
     model_path = train_conf["model_path"]
     out_path = Path(model_path).parent
-    print(reshape_2d(img_true))
+    print(img_true.reshape(5,-1,5))# 5
     print("-----------------------------------------------------------")
     print("-----------------------------------------------------------")
-    print(reshape_2d(pred.cpu()))
+    print(pred.cpu().reshape(5,-1,5))
     if train_conf["fourier"]:
         for i in range(len(img_test)):
             visualize_with_fourier(i, img_test[i], pred[i], img_true[i], amp_phase=True, out_path=out_path)
-    else:
-        plot_results(
-            img_test.cpu(),
-            reshape_2d(pred.cpu()),
-            reshape_2d(img_true),
-            out_path,
-            save=True,
-        )
+    #else:
+        #plot_results(
+            #img_test.cpu(),
+            #pred.cpu().reshape(5,-1,5),
+            #img_true.reshape(5,-1,5),
+            #out_path,
+            #save=True,
+        #)

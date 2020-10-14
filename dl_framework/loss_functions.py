@@ -347,9 +347,16 @@ def loss_mse_msssim(x, y):
 
 def list_loss(x, y):
     """
-    Adapted loss for source list output.
+    Adapted loss for source list output. Sorted along x.
     """
     x = x.reshape(-1, 5, 5)
+
+    #Sort target Tensor along x-coordinate (1. column)
+    a = y[:,:,0] # bs * x
+    _, indices = torch.sort(a)
+    for j in range(len(indices[:,0])):
+        y[j] = y[j,indices[j],:]
+
     inp_pos = x[:,:,:2]
     inp_wdth = x[:,:,2:4]
     inp_amp = x[:,:,4]
@@ -366,3 +373,17 @@ def list_loss(x, y):
     loss_wdth = loss_amp_wdth(inp_wdth, tar_wdth)
 
     return loss_pos + loss_amp + loss_wdth
+
+def loss_pos(x, y):
+    """
+    Adapted Loss for source list output. Position only.
+    """
+    x = x.reshape(-1,5,2)
+    inp = x
+
+    tar = y[:,:,:2]
+
+    loss = nn.SmoothL1Loss()
+    loss = loss(inp, tar)
+
+    return loss_pos

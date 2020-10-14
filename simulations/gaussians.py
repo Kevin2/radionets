@@ -35,6 +35,13 @@ def simulate_gaussian_sources(
             list_sources = pointlike[1]
             pointlike = pointlike[0]
 
+            ##Sort the source list along x##
+
+#            a = list_sources[:,:,0]
+#            indices = np.argsort(a)
+#            for j in range(bundle_size):
+#                list_sources[j] = list_sources[j, indices[j], :]
+
         bundle = ext_gaussian + pointlike + pointsource
         images = bundle.copy()
 

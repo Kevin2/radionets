@@ -33,9 +33,44 @@ def test():
     )
     return arch
 
+def list_pos():
+    """
+    Conv-Network with source list as target. Position only. FFT beforehand.
+    """
+    arch = nn.Sequential(
+        Lambda(unsqueeze1),
+        nn.BatchNorm2d(64),
+        *conv(1, 3, (3,3), 1, 1),#3*63*63
+        *conv(3, 6, (3,3), 1, 1),#6*63*63
+        Lambda(flatten),
+        nn.Linear(23814, 2300),
+        nn.ReLU(),
+        nn.Linear(2300, 230),
+        nn.ReLU(),
+        nn.Linear(230, 5*2),
+        Lambda(absolute),
+    )
+    return arch
+
+def onesource():
+    """
+    For one source images.
+    """
+    arch = nn.Sequential(
+        Lambda(unsqueeze1),
+        *conv(1,5, (3,3), 1, 1),
+        Lambda(flatten),
+        nn.Linear(19845, 5000),
+        nn.ReLU(),
+        nn.Linear(5000, 500),
+        nn.ReLU(),
+        nn.Linear(500, 5)
+    )
+    return arch
+
 def cnn_list():
     """
-    conv-layer with source list as target, do fft beforehand so input=dirtyim.
+    conv-layers with source list as target, do fft beforehand so input=dirtyim.
     """
     arch = nn.Sequential(
         #Lambda(euler_),
@@ -43,6 +78,7 @@ def cnn_list():
         Lambda(unsqueeze1),
         *conv(1, 5, (3,3), 1, 0),
         *conv(5, 25, (3,3), 1, 0),
+        nn.Dropout2d(),
         nn.MaxPool2d((3,3), 2), # 25*29*29
         Lambda(flatten),
         nn.Linear(21025,5000),
@@ -50,32 +86,33 @@ def cnn_list():
         nn.Linear(5000,500),
         nn.ReLU(),
         nn.Linear(500,5*5),
-        #Lambda(absolute),
+        Lambda(absolute),
     )
     return arch
 
-def cnn_list_fft():
+def cnn_list_big():
     """
-    conv-layer with source list as target, do fft here.
+    Big arch; Conv-layers with source list as target. FFT beforehand.
     """
     arch = nn.Sequential(
-        Lambda(euler_),
-        Lambda(fft_),
+        #Lambda(euler_),
+        #Lambda(fft_),
         Lambda(unsqueeze1),
-        nn.BatchNorm2d(64)
+        #nn.BatchNorm2d(64)
         *conv(1, 5, (3,3), 1, 0),
         *conv(5, 25, (3,3), 1, 0),
-        nn.Dropout2d(),
         nn.MaxPool2d((3,3),2),
         *conv(25,50, (3,3), 1, 0),#50*27*27
         *conv(50, 75, (3,3), 1, 0), #75*25*25
+        nn.Dropout2d(),
         nn.MaxPool2d((3,3), 2),#75*12*12
         Lambda(flatten),
         nn.Linear(10800,2500),
         nn.ReLU(),
         nn.Linear(2500,250),
-        nn.ReLu(),
+        nn.ReLU(),
         nn.Linear(250,5*5),
+        Lambda(absolute),
     )
     return arch
 
