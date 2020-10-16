@@ -29,6 +29,8 @@ from dl_framework.callbacks import (
     SaveCallback,
     LoggerCallback,
     data_aug,
+    LR_Find,
+    Recorder_lr_find,
 )
 
 
@@ -200,27 +202,52 @@ def define_learner(
     model_name = model_path.split("models/")[-1].split("/")[0]
     lr = train_conf["lr"]
     if train_conf["norm_path"] != "none":
-        cbfs.extend([
-            partial(BatchTransformXCallback, normalize_tfm(train_conf["norm_path"])),
-        ])
+        cbfs.extend(
+            [
+                partial(
+                    BatchTransformXCallback, normalize_tfm(train_conf["norm_path"])
+                ),
+            ]
+        )
     if not test:
-        cbfs.extend([
-            CudaCallback,
-        ])
+        cbfs.extend(
+            [
+                CudaCallback,
+            ]
+        )
     if not lr_find:
-        cbfs.extend([
-            Recorder,
-            partial(AvgStatsCallback, metrics=[]),
-            partial(SaveCallback, model_path=model_path, model_name=model_name),
-        ])
+        cbfs.extend(
+            [
+                Recorder,
+                partial(AvgStatsCallback, metrics=[]),
+                partial(SaveCallback, model_path=model_path, model_name=model_name),
+            ]
+        )
     if not test and not lr_find:
-        cbfs.extend([
-            # data_aug,
-        ])
+        cbfs.extend(
+            [
+                # data_aug,
+            ]
+        )
     if train_conf["telegram_logger"]:
-        cbfs.extend([
-            partial(LoggerCallback, model_name=model_name),
-        ])
+        cbfs.extend(
+            [
+                partial(LoggerCallback, model_name=model_name),
+            ]
+        )
+    if lr_find:
+        cbfs.extend(
+            [
+                partial(AvgStatsCallback, metrics=[]),
+                partial(
+                    LR_Find,
+                    max_iter=len(data.train_ds) * 2 // train_conf["bs"],
+                    max_lr=train_conf["max_lr"],
+                    min_lr=train_conf["min_lr"],
+                ),
+                Recorder_lr_find,
+            ]
+        )
 
     loss_func = train_conf["loss_func"]
     if loss_func == "feature_loss":

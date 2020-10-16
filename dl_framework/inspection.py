@@ -98,8 +98,8 @@ def eval_model(img, model):
     pred: n 1d arrays
         predicted images
     """
-    #if len(img.shape) == (3):
-        #img = img.unsqueeze(0)
+    # if len(img.shape) == (3):
+    # img = img.unsqueeze(0)
     model.eval()
     with torch.no_grad():
         pred = model(img.float())
@@ -152,7 +152,6 @@ def plot_loss(learn, model_path):
 def plot_lr(learn, model_path):
     """
     Plot learning rate of model.
-
     Parameters
     ----------
     learn: learner-object
@@ -164,11 +163,10 @@ def plot_lr(learn, model_path):
     # second turn off the interactive mode
     mpl.use("Agg")
     plt.ioff()
-    name_model = model_path.split("/")[-1].split(".")[0]
-    save_path = model_path.split(".model")[0]
-    print("\nPlotting Learning rate for: {}\n".format(name_model))
+    save_path = model_path.with_suffix("")
+    print(f"\nPlotting Learning rate for: {model_path.stem}\n")
     learn.recorder.plot_lr()
-    plt.savefig("{}_lr.pdf".format(save_path), bbox_inches="tight", pad_inches=0.01)
+    plt.savefig(f"{save_path}_lr.pdf", bbox_inches="tight", pad_inches=0.01)
     plt.clf()
     mpl.rcParams.update(mpl.rcParamsDefault)
 
@@ -176,7 +174,6 @@ def plot_lr(learn, model_path):
 def plot_lr_loss(learn, arch_name, out_path, skip_last):
     """
     Plot loss of learning rate finder.
-
     Parameters
     ----------
     learn: learner-object
@@ -192,9 +189,10 @@ def plot_lr_loss(learn, arch_name, out_path, skip_last):
     # second turn off the interactive mode
     mpl.use("Agg")
     plt.ioff()
-    print("\nPlotting Lr vs Loss for architecture: {}\n".format(arch_name))
+    print(f"\nPlotting Lr vs Loss for architecture: {arch_name}\n")
     learn.recorder_lr_find.plot(skip_last, save=True)
-    plt.savefig(out_path + "/lr_loss.pdf", bbox_inches="tight", pad_inches=0.01)
+    out_path.mkdir(parents=True, exist_ok=True)
+    plt.savefig(out_path / "lr_loss.pdf", bbox_inches="tight", pad_inches=0.01)
     mpl.rcParams.update(mpl.rcParamsDefault)
 
 
@@ -244,7 +242,7 @@ def plot_results(inp, pred, truth, model_path, save=False):
         plt.tight_layout()
 
         if save:
-            out = model_path/"predictions/"
+            out = model_path / "predictions/"
             out.mkdir(parents=True, exist_ok=True)
 
             out_path = adjust_outpath(out, "/prediction", form="pdf")
@@ -252,23 +250,34 @@ def plot_results(inp, pred, truth, model_path, save=False):
 
 
 def create_inspection_plots(learn, train_conf):
-    test_ds = load_data(train_conf["data_path"], "test", fourier=train_conf["fourier"], transformed_imgs=train_conf["transformed_imgs"])
-    img_test, img_true = get_images(test_ds, 5, train_conf["norm_path"])# 5
+    test_ds = load_data(
+        train_conf["data_path"],
+        "test",
+        fourier=train_conf["fourier"],
+        transformed_imgs=train_conf["transformed_imgs"],
+    )
+    img_test, img_true = get_images(test_ds, 5, train_conf["norm_path"])  # 5
+
     pred = eval_model(img_test.cuda(), learn.model)
+
     model_path = train_conf["model_path"]
     out_path = Path(model_path).parent
-    print(img_true.reshape(5,-1,5))# 5
+
+    print(img_true.reshape(5, -1, 5))  # 5
     print("-----------------------------------------------------------")
     print("-----------------------------------------------------------")
     print(pred.cpu().reshape(5,5,-1))#.reshape(5,-1,5)
+
     if train_conf["fourier"]:
         for i in range(len(img_test)):
-            visualize_with_fourier(i, img_test[i], pred[i], img_true[i], amp_phase=True, out_path=out_path)
+            visualize_with_fourier(
+                i, img_test[i], pred[i], img_true[i], amp_phase=True, out_path=out_path
+            )
     #else:
-        #plot_results(
-            #img_test.cpu(),
-            #pred.cpu().reshape(5,-1,5),
-            #img_true.reshape(5,-1,5),
-            #out_path,
-            #save=True,
-        #)
+    #    plot_results(
+    #        img_test.cpu(),
+    #        pred.cpu().reshape(5,-1,5),
+    #        img_true.reshape(5,-1,5),
+    #        out_path,
+    #        save=True,
+    #    )
