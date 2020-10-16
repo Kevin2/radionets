@@ -38,6 +38,9 @@ def read_config(config):
     train_conf["num_epochs"] = config["general"]["num_epochs"]
     train_conf["inspection"] = config["general"]["inspection"]
     train_conf["source_list"] = config["general"]["source_list"]
+
+    train_conf["max_lr"] = config["lr_find"]["max_lr"]
+    train_conf["min_lr"] = config["lr_find"]["min_lr"]
     return train_conf
 
 
@@ -71,9 +74,7 @@ def define_arch(arch_name, img_size):
 
 
 def pop_interrupt(learn, train_conf):
-    if click.confirm(
-        "KeyboardInterrupt, do you want to save the model?", abort=False
-    ):
+    if click.confirm("KeyboardInterrupt, do you want to save the model?", abort=False):
         model_path = train_conf["model_path"]
         # save model
         print("Saving the model after epoch {}".format(learn.epoch))
