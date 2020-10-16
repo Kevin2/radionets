@@ -124,6 +124,7 @@ def read_config(config):
     if config["gaussians"]["simulate"]:
         click.echo("Create fft_images from gaussian data set! \n")
 
+        sim_conf["source_list"] = config["gaussians"]["source_list"]
         sim_conf["type"] = "gaussians"
         if config["gaussians"]["pointsources"]:
             sim_conf["num_pointsources"] = config["gaussians"]["num_pointsources"]
@@ -135,7 +136,6 @@ def read_config(config):
             sim_conf["num_pointlike_gaussians"] = config["gaussians"][
                 "num_pointlike_gaussians"
             ]
-            sim_conf["source_list"] = config["gaussians"]["source_list"]
             click.echo("Adding pointlike gaussians.")
         else:
             sim_conf["num_pointlike_gaussians"] = None

@@ -9,6 +9,7 @@ from dl_framework.model import (
     euler_,
     unsqueeze1,
     absolute,
+    normalization,
     deconv,
     double_conv,
     cut_off,
@@ -33,13 +34,33 @@ def test():
     )
     return arch
 
+def list_pos_():
+    """
+    Conv-Network with source list as target. Position only. FFT beforehand.
+    """
+    arch = nn.Sequential(
+        Lambda(normalization),
+        Lambda(unsqueeze1),
+        *conv(1, 3, (3,3), 1, 1),#3*63*63
+        *conv(3, 6, (3,3), 1, 1),#6*63*63
+        nn.Dropout2d(),
+        Lambda(flatten),
+        nn.Linear(23814, 2300),
+        nn.ReLU(),
+        nn.Linear(2300, 230),
+        nn.ReLU(),
+        nn.Linear(230, 5*2),
+        Lambda(absolute),
+    )
+    return arch
+
 def list_pos():
     """
     Conv-Network with source list as target. Position only. FFT beforehand.
     """
     arch = nn.Sequential(
+        Lambda(normalization),
         Lambda(unsqueeze1),
-        nn.BatchNorm2d(64),
         *conv(1, 3, (3,3), 1, 1),#3*63*63
         *conv(3, 6, (3,3), 1, 1),#6*63*63
         Lambda(flatten),

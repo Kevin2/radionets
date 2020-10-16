@@ -48,14 +48,14 @@ class Dataset:
 
 
 class h5_dataset:
-    def __init__(self, bundle_paths, tar_fourier, source_list, amp_phase=None):
+    def __init__(self, bundle_paths, tar_fourier, transformed_imgs, amp_phase=None):
         """
         Save the bundle paths and the number of bundles in one file.
         """
         self.bundles = bundle_paths
         self.num_img = len(self.open_bundle(self.bundles[0], "x"))
         self.tar_fourier = tar_fourier
-        self.source_list = source_list
+        self.transformed_imgs = transformed_imgs
         self.amp_phase = amp_phase
 
     def __call__(self):
@@ -108,7 +108,7 @@ class h5_dataset:
             ]
         )
 
-        if (var == "x" and self.source_list==False) or self.tar_fourier is True:
+        if (var == "x" and self.transformed_imgs==False) or self.tar_fourier is True:
             if len(i) == 1:
                 data_amp, data_phase = data[:, 0], data[:, 1]
 
@@ -117,20 +117,20 @@ class h5_dataset:
                 data_amp, data_phase = data[:, 0].unsqueeze(1), data[:, 1].unsqueeze(1)
 
                 data_channel = torch.cat([data_amp, data_phase], dim=1)
-        elif var == "x" and self.source_list==True:
+        elif var == "x" and self.transformed_imgs==True:
             if data.shape[1] == 2:
                 raise ValueError("Two channeled data is used despite Fourier being False. Set Fourier to True!")
             if len(i) == 1:
                 data_channel = data.reshape(data.shape[-1], data.shape[-1])
             else:
                 data_channel = data.reshape(-1, data.shape[-1], data.shape[-1])
-        elif var == "y" and self.source_list == True:
+        elif var == "y":
             if data.shape[1] == 2:
                 raise ValueError("Size Error")
             if len(i) == 1:
-                data_channel = data.reshape(5,data.shape[-1]) #1. index number of sources
+                data_channel = data.reshape(-1,5) #1. index number of sourcesthere is always 5 params.
             else:
-                data_channel = data.reshape(-1,5,data.shape[-1])#1.index #sources
+                data_channel = data.reshape(len(i),-1,5)#2.index #sources
         else:
             if data.shape[1] == 2:
                 raise ValueError("Two channeled data is used despite Fourier being False. Set Fourier to True!")
@@ -210,7 +210,8 @@ def open_bundle(path):
 
 def open_fft_bundle(path):
     """
-    open radio galaxy bundles created in first analysis step
+    open radio galaxy bundles created in first analysis step for 
+    source_list=True
     z is source list.
     """
     f = h5py.File(path, "r")
@@ -253,7 +254,8 @@ def save_fft_pair_list(path, x, y, z, name_x="x", name_y="y", name_z="z"):
 
 def open_fft_pair(path):
     """
-    open fft_pairs which were created in second analysis step
+    Open fft_pairs which were created in second analysis step.
+    For source_list=False.
     """
     f = h5py.File(path, "r")
     bundle_x = np.array(f["x"])
@@ -275,7 +277,7 @@ def mean_and_std(array):
     return array.mean(), array.std()
 
 
-def load_data(data_path, mode, fourier=False, source_list=False):
+def load_data(data_path, mode, fourier=False, transformed_imgs=False):
     """
     Load data set from a directory and return it as h5_dataset.
 
@@ -296,10 +298,10 @@ def load_data(data_path, mode, fourier=False, source_list=False):
         dataset containing x and y images
     """
     bundle_paths = get_bundles(data_path)
-    if source_list:
+    if transformed_imgs:
         prefix = "tra_"
     else:
         prefix = "samp_"
     data = [path for path in bundle_paths if re.findall(prefix + mode, path.name)]
-    ds = h5_dataset(data, tar_fourier=fourier, source_list=source_list)
+    ds = h5_dataset(data, tar_fourier=fourier, transformed_imgs=transformed_imgs)
     return ds

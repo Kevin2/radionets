@@ -26,21 +26,29 @@ def simulate_gaussian_sources(
         list_sources = 0
 
         if num_comp_ext is not None:
-            ext_gaussian = create_ext_gauss_bundle(grid)
+            ext_gaussian = create_ext_gauss_bundle(grid, num_comp_ext, source_list)
+            if source_list:
+                list_sources = ext_gaussian[1]
+                ext_gaussian = ext_gaussian[0]
+
         if num_pointlike is not None:
             pointlike = create_gauss(grid[:, 0], bundle_size, num_pointlike, True, source_list)
+            if source_list:
+                list_sources = pointlike[1]
+                pointlike = pointlike[0]
+
         if num_pointsources is not None:
-            pointsource = gauss_pointsources(grid[:, 0], bundle_size, num_pointsources)
-        if source_list:
-            list_sources = pointlike[1]
-            pointlike = pointlike[0]
+            pointsource = gauss_pointsources(grid[:, 0], bundle_size, num_pointsources, source_list)
+            if source_list:
+                list_sources = pointsource[1]
+                pointsource = pointsource[0]
 
             ##Sort the source list along x##
 
-#            a = list_sources[:,:,0]
-#            indices = np.argsort(a)
-#            for j in range(bundle_size):
-#                list_sources[j] = list_sources[j, indices[j], :]
+            a = list_sources[:,:,0]
+            indices = np.argsort(a)
+            for j in range(bundle_size):
+                list_sources[j] = list_sources[j, indices[j], :]
 
         bundle = ext_gaussian + pointlike + pointsource
         images = bundle.copy()
@@ -83,7 +91,7 @@ def create_grid(pixel, bundle_size):
 # draw random parameters for extended gaussian sources
 
 
-def gauss_paramters():
+def gauss_paramters(img_size, comps):
     """
     Generate a random set of Gaussian parameters.
 
@@ -111,7 +119,8 @@ def gauss_paramters():
         0 for one-sided and 1 for two-sided jets
     """
     # random number of components between 4 and 9
-    comps = np.random.randint(4, 7)  # decrease for smaller images
+    #comps = np.random.randint(4, 7)  # decrease for smaller images
+    ### Make comps an entry of the function and not random.
 
     # start amplitude between 10 and 1e-3
     amp_start = (np.random.randint(0, 100) * np.random.random()) / 10
@@ -119,11 +128,18 @@ def gauss_paramters():
     while amp_start == 0:
         amp_start = (np.random.randint(0, 100) * np.random.random()) / 10
     # logarithmic decrease to outer components
-    amp = np.array([amp_start / np.exp(i) for i in range(comps)])
+    #amp = np.array([amp_start / np.exp(i) for i in range(comps)])
+
+    ### constant amplitudes
+    amp = np.array([amp_start for i in range(comps)])
 
     # linear distance bestween the components
-    x = np.arange(0, comps) * 5
-    y = np.zeros(comps)
+    #x = np.arange(0, comps) * 5
+    #y = np.zeros(comps)
+
+    ### random localization, origin @ center
+    x = np.random.randint(1,img_size, size=comps) - img_size//2
+    y = np.random.randint(1,img_size, size=comps) - img_size//2 
 
     # extension of components
     # random start value between 1 - 0.375 and 1 - 0
@@ -311,10 +327,10 @@ def create_gaussian_source(
     return source
 
 
-def gaussian_source(grid):
+def gaussian_source(grid, comps):
     """
     Creates random Gaussian source parameters and returns an image
-    of a Gaussian source.
+    of a Gaussian source + a list with those parameters.
 
     Parameters
     ----------
@@ -327,14 +343,17 @@ def gaussian_source(grid):
        Image containing a simulated Gaussian source.
     """
     # grid = create_grid(img_size)
-    comps, amp, x, y, sig_x, sig_y, rot, sides = gauss_paramters()
+    _, amp, x, y, sig_x, sig_y, rot, sides = gauss_paramters(len(grid[0]), comps)
     s = create_gaussian_source(
-        grid, comps, amp, x, y, sig_x, sig_y, rot, sides, blur=True
+        grid, comps, amp, x, y, sig_x, sig_y, rot=0, sides=0, blur=True
     )
-    return s
+    X = x + len(grid[0])//2
+    Y = y + len(grid[0])//2
+    a = np.array([X, Y, sig_x, sig_y, amp]).T
+    return s, a
 
 
-def create_ext_gauss_bundle(grid):
+def create_ext_gauss_bundle(grid, N, source_list):
     """
     Creates a bundle of Gaussian sources.
 
@@ -342,14 +361,22 @@ def create_ext_gauss_bundle(grid):
     ----------
     grid: nd array
         array holding 2d grid and axis for whole bundle
+    N: int
+        Number of sources per image
+    source_list: bool
+        return lists with sources+images or just images
 
     Returns
     -------
     bundle ndarray
         bundle of Gaussian sources
     """
-    bundle = np.array([gaussian_source(g) for g in grid])
-    return bundle
+    Bundle = np.array([gaussian_source(g, N) for g in grid])
+    bundle, list_sources = zip(*Bundle)
+    if source_list:
+        return np.array(bundle), np.array(list_sources)
+    else:
+        return np.array(bundle)
 
 
 # pointlike gaussians
@@ -393,17 +420,22 @@ def create_gauss(img, N, sources, spherical, source_list):
 # pointsources
 
 
-def gauss_pointsources(img, num_img, sources):
+def gauss_pointsources(img, num_img, sources, source_list):
     mx = np.random.randint(0, 63, size=(num_img, sources))
     my = np.random.randint(0, 63, size=(num_img, sources))
-    amp = (np.random.randint(0, 100, size=(num_img)) * np.random.random()) / 1e2
+    amp = (np.random.randint(1, 100, size=(num_img))*1/10*np.random.randint(5,10)) / 1e2
     sigma = 0.05
+    s = np.zeros((num_img, sources, 5))
     for i in range(num_img):
         targets = np.random.randint(2, sources + 1)
         for j in range(targets):
             g = gauss(mx[i, j], my[i, j], sigma, sigma, amp[i])
             img[i] += g
-    return np.array(img)
+            s[i,j] = np.array([mx[i,j],my[i,j],sigma,sigma,amp[i]])
+    if source_list:
+        return np.array(img), s
+    else:
+        return np.array(img)
 
 
 def gauss(mx, my, sx, sy, amp=0.01):

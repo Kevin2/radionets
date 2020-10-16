@@ -18,6 +18,19 @@ class Lambda(nn.Module):
 def reshape(x):
     return x.reshape(-1,2,63,63)
 
+def normalization(x):
+    """
+    Normalize each Image to have amplitudes elements of [0,1]
+    [min,max] -> [0,1]
+    """
+    norm = ()
+    for j in range(len(x[:,0,0])):
+        b = torch.max(x[j]).item()
+        a = torch.min(x[j]).item()
+        n = (x[j] - a)/(b-a)
+        norm = norm + (n,)
+    return torch.stack(norm)
+
 def fft(x):
     """
     Layer that performs a fast Fourier-Transformation.

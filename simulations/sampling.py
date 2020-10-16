@@ -2,7 +2,7 @@ import os
 from tqdm import tqdm
 from numpy import savez_compressed
 from simulations.utils import get_fft_bundle_paths, prepare_fft_images
-from dl_framework.data import open_fft_bundle, save_fft_pair
+from dl_framework.data import open_fft_bundle, save_fft_pair, open_fft_pair
 from simulations.uv_simulations import sample_freqs
 
 
@@ -17,6 +17,7 @@ def sample_frequencies(
     lon=None,
     lat=None,
     steps=None,
+    source_list=False,
 ):
     for mode in ["train", "valid", "test"]:
         print(f"\n Sampling {mode} data set.\n")
@@ -24,7 +25,11 @@ def sample_frequencies(
         bundle_paths = get_fft_bundle_paths(data_path, "fft", mode)
 
         for path in tqdm(bundle_paths):
-            fft, truth = open_fft_bundle(path)
+            if source_list:
+                fft, truth = open_fft_bundle(path)
+            else:
+                fft, truth = open_fft_pair(path)
+
             size = fft.shape[-1]
 
             fft_scaled = prepare_fft_images(fft.copy(), amp_phase, real_imag)

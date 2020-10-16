@@ -374,16 +374,42 @@ def list_loss(x, y):
 
     return loss_pos + loss_amp + loss_wdth
 
-def loss_pos(x, y):
+def loss_pos_(x, y):
     """
-    Adapted Loss for source list output. Position only.
+    Adapted Loss for source list output. Position only. Sort here.
     """
     x = x.reshape(-1,5,2)
     inp = x
 
     tar = y[:,:,:2]
 
+    #Sort target
+    a = tar[:,:,0]
+    _, indices = torch.sort(a)
+    for j in range(len(indices[:,0])):
+        tar[j] = tar[j,indices[j],:]    
+
     loss = nn.SmoothL1Loss()
     loss = loss(inp, tar)
 
-    return loss_pos
+    return loss
+
+def loss_pos(x, y):
+    """
+    Adapted Loss for source list output. Position only. For data sorted beforehand.
+    """
+    x = x.reshape(-1,5,2)
+    inp = x
+
+    tar = y[:,:,:2]
+
+    #Sort target
+#    a = tar[:,:,0]
+#    _, indices = torch.sort(a)
+#    for j in range(len(indices[:,0])):
+#        tar[j] = tar[j,indices[j],:]    
+
+    loss = nn.SmoothL1Loss()
+    loss = loss(inp, tar)
+
+    return loss
