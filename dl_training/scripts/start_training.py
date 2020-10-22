@@ -11,6 +11,7 @@ from dl_training.utils import (
 )
 from dl_framework.learner import define_learner
 from dl_framework.model import load_pre_model
+from dl_framework.hooks import model_summary
 from dl_framework.inspection import (
     create_inspection_plots,
     plot_lr_loss,
@@ -147,6 +148,7 @@ def main(configuration_path, mode):
         plot_lr(learn, Path(train_conf["model_path"]))
         plot_loss(learn, Path(train_conf["model_path"]), log=True)
 
+#    model_summary(learn)
 
 if __name__ == "__main__":
     main()

@@ -20,6 +20,7 @@ from dl_framework.loss_functions import (
     list_loss,
     loss_pos,
     loss_pos_,
+    pos_loss,
 )
 from dl_framework.callbacks import (
     AvgStatsCallback,
@@ -278,6 +279,8 @@ def define_learner(
         loss_func = loss_pos
     elif loss_func == "loss_pos_":
         loss_func = loss_pos_
+    elif loss_func == "pos_loss":
+        loss_func = pos_loss
     else:
         print("\n No matching loss function or architecture! Exiting. \n")
         sys.exit(1)

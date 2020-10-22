@@ -10,7 +10,7 @@ def main():
     Inspect dirty Images (tra_) for null amplitudes. Output: Number of images
     with null amplitude.
     """
-    data_path = './data_newamp'
+    data_path = './data_ex'
     err = []
 
     for mode in ['train','valid', 'test']:

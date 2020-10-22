@@ -10,6 +10,8 @@ from dl_framework.model import (
     unsqueeze1,
     absolute,
     normalization,
+    clamp,
+    round_,
     deconv,
     double_conv,
     cut_off,
@@ -41,16 +43,19 @@ def list_pos_():
     arch = nn.Sequential(
         Lambda(normalization),
         Lambda(unsqueeze1),
-        *conv(1, 3, (3,3), 1, 1),#3*63*63
-        *conv(3, 6, (3,3), 1, 1),#6*63*63
-        nn.Dropout2d(),
+        *conv(1, 3, (3,3), 1, 1),#5*63*63
+        *conv(3, 6, (3,3), 1, 1),#25*63*63
+        *conv(6, 12, (3,3), 1, 1),#12 *63*63
         Lambda(flatten),
-        nn.Linear(23814, 2300),
+        nn.Linear(47628, 4700),
         nn.ReLU(),
-        nn.Linear(2300, 230),
+        nn.Dropout2d(),
+        nn.Linear(4700, 470),
         nn.ReLU(),
-        nn.Linear(230, 5*2),
-        Lambda(absolute),
+        nn.Dropout2d(),
+        nn.Linear(470, 5*2), 
+        Lambda(clamp),
+#        Lambda(round_),
     )
     return arch
 
@@ -66,10 +71,12 @@ def list_pos():
         Lambda(flatten),
         nn.Linear(23814, 2300),
         nn.ReLU(),
+        nn.Dropout2d(p=0.4),
         nn.Linear(2300, 230),
         nn.ReLU(),
+        nn.Dropout2d(p=0.3),
         nn.Linear(230, 5*2),
-        Lambda(absolute),
+        Lambda(clamp),
     )
     return arch
 

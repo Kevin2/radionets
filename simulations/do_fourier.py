@@ -5,6 +5,7 @@ from dl_framework.data import fourier_trafo, save_fft_pair
 from simulations.utils import check_samp, get_samp_files
 
 @click.command()
+#@click.argument("data_path", type=click.Path(exists=True, dir_okay=False))
 def main():
     """
     Do an inverse Fourier Transformation to retrieve 'dirty' images from
@@ -14,6 +15,7 @@ def main():
     """
 
     data_path = "./data_ex"
+    print("Data Path: ", data_path)
 
     samp_files = check_samp(data_path)
 
@@ -22,6 +24,7 @@ def main():
         bundles = get_samp_files(samp_files, data_path)
 
         click.echo("\n Starting Fourier Transformation of samp_files!")
+
         for path in tqdm(bundles):
             
             tra, slist = fourier_trafo(path)

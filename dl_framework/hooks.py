@@ -48,6 +48,6 @@ def model_summary(learn, find_all=False):
         mods = learn.model.children()
     # mods = find_modules(learn.model, is_lin_layer)
     # if find_all else learn.model.children()
-    f = lambda hook, mod, inp, out: print(f"{mod}\n{out.shape}\n")
+    f = lambda hook, mod, inp, out: print(f"{mod}\n{out.shape}\n"), print(learn.loss_func)    
     with Hooks(mods, f) as hooks:
         learn.model(xb)

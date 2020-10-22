@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torch.nn.modules.utils import _pair
 from math import sqrt
 from pathlib import Path
-
+from scipy.optimize import linear_sum_assignment
 
 class Lambda(nn.Module):
     def __init__(self, func):
@@ -15,8 +15,51 @@ class Lambda(nn.Module):
     def forward(self, x):
         return self.func(x)
 
+def permutation(x, y):
+    """
+    Returns the permutation minimizing euclidean distance 
+    between predictions x and target y using hungarian 
+    algorithm.
+
+    Input
+    ------
+    x : torch tensor (:,5,2)
+        Predicted Source positions
+    y : torch tensor (:,5,2)
+        True Source positions
+
+    Output
+    ------
+    col: np-array
+        Permutation (for x) which minimizes euclidean distance.
+    """
+    d = nn.MSELoss(reduction='sum')
+    cost = np.zeros((x.shape[0],y.shape[0]))
+    for i in range(len(cost)):
+        for j in range(len(cost)):
+            cost[i,j] = (d(x[i], y[j]).item())**0.5
+    row, col = linear_sum_assignment(cost)
+    perm = np.zeros(col.shape)
+    for j in range(len(col)):
+        perm[col[j]] = j
+    return perm
+
+def sort(x, entry=0):
+    a = x[:,entry]
+    if type(a)== np.ndarray:
+        a = torch.from_numpy(a)
+    _, indices = torch.sort(a)
+    x = x[indices, :]
+    return x
+
 def reshape(x):
     return x.reshape(-1,2,63,63)
+
+def round_(x):
+    return torch.round(x)
+
+def clamp(x):
+    return torch.clamp(x, 0, 63)
 
 def normalization(x):
     """

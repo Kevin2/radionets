@@ -3,6 +3,7 @@ from torch import nn
 from dl_framework.hook_fastai import hook_outputs
 from torchvision.models import vgg16_bn
 from dl_framework.utils import children
+from dl_framework.model import permutation
 import torch.nn.functional as F
 import pytorch_msssim
 
@@ -345,9 +346,9 @@ def loss_mse_msssim(x, y):
 
     return loss_amp + loss_phase
 
-def list_loss(x, y):
+def list_loss_(x, y):
     """
-    Adapted loss for source list output. Sorted along x.
+    Adapted loss for source list output. Use on unsorted data. Sort along x.
     """
     x = x.reshape(-1, 5, 5)
 
@@ -356,6 +357,29 @@ def list_loss(x, y):
     _, indices = torch.sort(a)
     for j in range(len(indices[:,0])):
         y[j] = y[j,indices[j],:]
+
+    inp_pos = x[:,:,:2]
+    inp_wdth = x[:,:,2:4]
+    inp_amp = x[:,:,4]
+
+    tar_pos = y[:,:,:2]
+    tar_wdth = y[:,:,2:4]
+    tar_amp = y[:,:,4]
+
+    loss_pos = nn.SmoothL1Loss()
+    loss_pos = loss_pos(inp_pos, tar_pos)
+
+    loss_amp_wdth = nn.MSELoss()
+    loss_amp = loss_amp_wdth(inp_amp, tar_amp)
+    loss_wdth = loss_amp_wdth(inp_wdth, tar_wdth)
+
+    return loss_pos + loss_amp + loss_wdth
+
+def list_loss(x, y):
+    """
+    Adapted loss for source list output. Use on sorted data.
+    """
+    x = x.reshape(-1, 5, 5)
 
     inp_pos = x[:,:,:2]
     inp_wdth = x[:,:,2:4]
@@ -403,13 +427,30 @@ def loss_pos(x, y):
 
     tar = y[:,:,:2]
 
-    #Sort target
-#    a = tar[:,:,0]
-#    _, indices = torch.sort(a)
-#    for j in range(len(indices[:,0])):
-#        tar[j] = tar[j,indices[j],:]    
-
     loss = nn.SmoothL1Loss()
     loss = loss(inp, tar)
+
+    return loss
+
+def pos_loss(x, y):
+    """
+    Permutation Loss for Source-positions list. With hungarian method
+    to solve assignment problem.
+    """
+    inp = x.reshape(-1,5,2)
+    tar = y[:,:,:2]
+
+    for b in range(inp.shape[0]):
+        perm = permutation(inp[b],tar[b])
+        inp[b] = inp[b,perm,:]
+
+    loss = nn.MSELoss()
+    loss = loss(inp, tar)
+#    l = (loss[:,:,0]+loss[:,:,1])**0.5 
+
+#    loss = loss.reshape(-1)
+#    for j in range(len(loss)):
+#        if abs(loss[j])<0.25:
+#            loss[j] = 0
 
     return loss

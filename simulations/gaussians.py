@@ -44,7 +44,7 @@ def simulate_gaussian_sources(
                 pointsource = pointsource[0]
 
             ##Sort the source list along x##
-
+        if source_list:
             a = list_sources[:,:,0]
             indices = np.argsort(a)
             for j in range(bundle_size):
@@ -97,12 +97,13 @@ def gauss_paramters(img_size, comps):
 
     Parameters
     ----------
-    None
+    img_size: int
+        Number of pixels
+    comps: int
+        Number of components
 
     Returns
     -------
-    comps: int
-        Number of components
     amp: float
         Amplitude of the core component
     x: array
