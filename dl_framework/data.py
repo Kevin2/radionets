@@ -132,7 +132,7 @@ class h5_dataset:
             if len(i) == 1:
                 data_channel = data.reshape(-1, 5)  # 1. index number of sourcesthere is always 5 params.
             else:
-                data_channel = data.reshape(len(i), -1, ==5)  # 2.index #sources
+                data_channel = data.reshape(len(i), -1, 5)  # 2.index #sources
         else:
             if self.source_list:
                 data_channel = data
@@ -158,8 +158,7 @@ def split_real_imag(array):
     """
     return array.real, array.imag
 
- = "/".join(model_path.split("/", 2)[:2])
-        self.model_name = model_name
+
 def split_amp_phase(array):
     """
     takes a complex array and returns the amplitude and the phase
