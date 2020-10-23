@@ -14,7 +14,6 @@ norm_path = "none"
 
 [general]
 fourier = true
-source_list = false
 arch_name = "filter_deep"
 loss_func = "mse"
 num_epochs = 2
@@ -25,8 +24,6 @@ source_list = false
 batch_size = 64
 lr = 1e-3
 
-[param_scheduling]
-use = true
-lr_start = 1e-3
-lr_max = 5e-3
-lr_stop = 7e-4
+[lr_find]
+max_lr = 1e-1
+min_lr = 1e-7

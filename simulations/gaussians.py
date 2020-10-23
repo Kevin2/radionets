@@ -16,7 +16,7 @@ def simulate_gaussian_sources(
     num_pointlike,
     num_pointsources,
     noise,
-    source_list,
+    source_list
 ):
     for i in tqdm(range(num_bundles)):
         grid = create_grid(img_size, bundle_size)
@@ -32,24 +32,20 @@ def simulate_gaussian_sources(
                 ext_gaussian = ext_gaussian[0]
 
         if num_pointlike is not None:
-            pointlike = create_gauss(
-                grid[:, 0], bundle_size, num_pointlike, True, source_list
-            )
+            pointlike = create_gauss(grid[:, 0], bundle_size, num_pointlike, True, source_list)
             if source_list:
                 list_sources = pointlike[1]
                 pointlike = pointlike[0]
 
         if num_pointsources is not None:
-            pointsource = gauss_pointsources(
-                grid[:, 0], bundle_size, num_pointsources, source_list
-            )
+            pointsource = gauss_pointsources(grid[:, 0], bundle_size, num_pointsources, source_list)
             if source_list:
                 list_sources = pointsource[1]
                 pointsource = pointsource[0]
 
-        # Sort the source list along x
+            ##Sort the source list along x##
         if source_list:
-            a = list_sources[:, :, 0]
+            a = list_sources[:,:,0]
             indices = np.argsort(a)
             for j in range(bundle_size):
                 list_sources[j] = list_sources[j, indices[j], :]
@@ -63,6 +59,7 @@ def simulate_gaussian_sources(
         bundle_fft = np.array([np.fft.fftshift(np.fft.fft2(img)) for img in images])
         path = adjust_outpath(data_path, "/fft_" + option)
         save_fft_pair_list(path, bundle_fft, bundle, list_sources)
+
 
 
 def create_grid(pixel, bundle_size):
@@ -123,8 +120,8 @@ def gauss_paramters(img_size, comps):
         0 for one-sided and 1 for two-sided jets
     """
     # random number of components between 4 and 9
-    # comps = np.random.randint(4, 7)  # decrease for smaller images
-    # Make comps an entry of the function and not random.
+    #comps = np.random.randint(4, 7)  # decrease for smaller images
+    ### Make comps an entry of the function and not random.
 
     # start amplitude between 10 and 1e-3
     amp_start = (np.random.randint(0, 100) * np.random.random()) / 10
@@ -132,18 +129,18 @@ def gauss_paramters(img_size, comps):
     while amp_start == 0:
         amp_start = (np.random.randint(0, 100) * np.random.random()) / 10
     # logarithmic decrease to outer components
-    # amp = np.array([amp_start / np.exp(i) for i in range(comps)])
+    #amp = np.array([amp_start / np.exp(i) for i in range(comps)])
 
-    # constant amplitudes
+    ### constant amplitudes
     amp = np.array([amp_start for i in range(comps)])
 
     # linear distance bestween the components
-    # x = np.arange(0, comps) * 5
-    # y = np.zeros(comps)
+    #x = np.arange(0, comps) * 5
+    #y = np.zeros(comps)
 
-    # random localization, origin @ center
-    x = np.random.randint(1, img_size, size=comps) - img_size // 2
-    y = np.random.randint(1, img_size, size=comps) - img_size // 2
+    ### random localization, origin @ center
+    x = np.random.randint(1,img_size, size=comps) - img_size//2
+    y = np.random.randint(1,img_size, size=comps) - img_size//2 
 
     # extension of components
     # random start value between 1 - 0.375 and 1 - 0
@@ -179,13 +176,11 @@ def create_rot_mat(alpha):
     rot_mat: 2darray
         2d rotation matrix
     """
-    rot_mat = np.array(
-        [[np.cos(alpha), -np.sin(alpha)], [np.sin(alpha), np.cos(alpha)]]
-    )
+    rot_mat = np.array([[np.cos(alpha), np.sin(alpha)], [np.sin(alpha), np.cos(alpha)]])
     return rot_mat
 
 
-def gaussian_component(x, y, flux, x_fwhm, y_fwhm, rot, center=None):
+def gaussian_component(x, y, flux, x_fwhm, y_fwhm, rot=0, center=None):
     """
     Adds a gaussian component to a 2d grid.
 
@@ -198,9 +193,9 @@ def gaussian_component(x, y, flux, x_fwhm, y_fwhm, rot, center=None):
     flux: float
         peak amplitude of component
     x_fwhm: float
-        full-width-half-maximum in x direction (sigma_x)
+        full-width-half-maximum in x direction
     y_fwhm: float
-        full-width-half-maximum in y direction (sigma_y)
+        full-width-half-maximum in y direction
     rot: int
         rotation of component in degree
     center: 2darray
@@ -216,6 +211,7 @@ def gaussian_component(x, y, flux, x_fwhm, y_fwhm, rot, center=None):
     else:
         rot_mat = create_rot_mat(np.deg2rad(rot))
         x_0, y_0 = ((center - len(x) // 2) @ rot_mat) + len(x) // 2
+
     gauss = flux * np.exp(
         -((x_0 - x) ** 2 / (2 * (x_fwhm) ** 2) + (y_0 - y) ** 2 / (2 * (y_fwhm) ** 2))
     )
@@ -306,8 +302,7 @@ def create_gaussian_source(
         2d grid containing Gaussian source
 
     Comments
-
-    train_conf["source_list"] = config["general"]["source_list"]    --------
+    --------
     components should not have too big gaps between each other
     """
     if sides == 1:
@@ -353,8 +348,8 @@ def gaussian_source(grid, comps):
     s = create_gaussian_source(
         grid, comps, amp, x, y, sig_x, sig_y, rot=0, sides=0, blur=True
     )
-    X = x + len(grid[0]) // 2
-    Y = y + len(grid[0]) // 2
+    X = x + len(grid[0])//2
+    Y = y + len(grid[0])//2
     a = np.array([X, Y, sig_x, sig_y, amp]).T
     return s, a
 
@@ -392,9 +387,7 @@ def create_gauss(img, N, sources, spherical, source_list):
     # img = [img]
     mx = np.random.randint(1, 63, size=(N, sources))
     my = np.random.randint(1, 63, size=(N, sources))
-    amp = (
-        np.random.randint(1, 100, size=(N)) * 1 / 10 * np.random.randint(5, 10)
-    ) / 1e2
+    amp = (np.random.randint(1, 100, size=(N)) *1/10* np.random.randint(5, 10)) / 1e2
 
     if spherical:
         sx = np.random.randint(1, 15, size=(N, sources)) / 10
@@ -403,13 +396,12 @@ def create_gauss(img, N, sources, spherical, source_list):
         sx = np.random.randint(1, 15, size=(N, sources))
         sy = np.random.randint(1, 15, size=(N, sources))
         theta = np.random.randint(0, 360, size=(N, sources))
-
-    s = np.zeros((N, sources, 1))  # changed from 5
+    
+    s = np.zeros((N,sources,5))
     for i in range(N):
         for j in range(sources):
             g = gauss(mx[i, j], my[i, j], sx[i, j], sy[i, j], amp[i])
-            # s[i,j] = np.array([mx[i,j],my[i,j],sx[i,j],sy[i,j],amp[i]])
-            s[i, j] = np.array([mx[i, j]])
+            s[i,j] = np.array([mx[i,j],my[i,j],sx[i,j],sy[i,j],amp[i]])
             if spherical:
                 img[i] += g
             else:
@@ -432,9 +424,7 @@ def create_gauss(img, N, sources, spherical, source_list):
 def gauss_pointsources(img, num_img, sources, source_list):
     mx = np.random.randint(0, 63, size=(num_img, sources))
     my = np.random.randint(0, 63, size=(num_img, sources))
-    amp = (
-        np.random.randint(1, 100, size=(num_img)) * 1 / 10 * np.random.randint(5, 10)
-    ) / 1e2
+    amp = (np.random.randint(1, 100, size=(num_img))*1/10*np.random.randint(5,10)) / 1e2
     sigma = 0.05
     s = np.zeros((num_img, sources, 5))
     for i in range(num_img):
@@ -442,7 +432,7 @@ def gauss_pointsources(img, num_img, sources, source_list):
         for j in range(targets):
             g = gauss(mx[i, j], my[i, j], sigma, sigma, amp[i])
             img[i] += g
-            s[i, j] = np.array([mx[i, j], my[i, j], sigma, sigma, amp[i]])
+            s[i,j] = np.array([mx[i,j],my[i,j],sigma,sigma,amp[i]])
     if source_list:
         return np.array(img), s
     else:

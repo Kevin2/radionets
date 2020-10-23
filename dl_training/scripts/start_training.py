@@ -38,12 +38,10 @@ from pathlib import Path
 def main(configuration_path, mode):
     """
     Start DNN training with options specified in configuration file.
-
     Parameters
     ----------
     configuration_path: str
         Path to the configuration toml file
-
     Modes
     -----
     train: start training of deep learning model (default option)
@@ -92,7 +90,6 @@ def main(configuration_path, mode):
 
         # load pretrained model
         if train_conf["pre_model"] != "none":
-            learn.create_opt()
             load_pre_model(learn, train_conf["pre_model"])
 
         # Train the model, except interrupt
@@ -114,13 +111,14 @@ def main(configuration_path, mode):
             data,
             arch,
             train_conf,
+            lr_find=True,
         )
 
         # load pretrained model
         if train_conf["pre_model"] != "none":
             load_pre_model(learn, train_conf["pre_model"], lr_find=True)
 
-        learn.lr_find()
+        learn.fit(2)
 
         # save loss plot
         plot_lr_loss(
@@ -140,17 +138,15 @@ def main(configuration_path, mode):
             train_conf,
         )
         # load pretrained model
-        if Path(train_conf["model_path"]).exists:
-            learn.create_opt()
-            load_pre_model(learn, train_conf["model_path"])
+        if train_conf["pre_model"] != "none":
+            load_pre_model(learn, train_conf["pre_model"])
         else:
-            click.echo("Selected model does not exist.")
+            click.echo("No pretrained model was selected.")
             click.echo("Exiting.\n")
             sys.exit()
 
         plot_lr(learn, Path(train_conf["model_path"]))
-        plot_loss(learn, Path(train_conf["model_path"]))
-
+        plot_loss(learn, Path(train_conf["model_path"]), log=True)
 
 #    model_summary(learn)
 
