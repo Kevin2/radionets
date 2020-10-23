@@ -14,6 +14,12 @@ before_install:
 
 install:
   - pip install .
+  - |
+    python -m install_texlive -p $HOME/texlive -t 2020 --collections='-acfghuDFG' \
+    -i 'koma-script,babel,csquotes,placeins,enumitem,siunitx,xpatch,standalone,circuitikz,xstring,fontawesome5,mleftright,mhchem,tabulary,tabu,varwidth,lstaddons,tcolorbox,mwe,fira,firamath,firamath-otf,xits,threeparttable,environ,trimspaces,pgfopts,ncctools'
+  # we need graphs from this document
+  - export PATH=$HOME/texlive/2020/bin/x86_64-linux:$PATH
+  - tlmgr install --with-doc tex-overview
 
 script:
 - python setup.py test

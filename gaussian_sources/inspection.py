@@ -8,16 +8,16 @@ from math import sqrt
 import pytorch_msssim
 
 # make nice Latex friendly plots
-# mpl.use("pgf")
-# mpl.rcParams.update(
-#     {
-#         "font.size": 14,
-#         "font.family": "sans-serif",
-#         "text.usetex": True,
-#         "pgf.rcfonts": False,
-#         "pgf.texsystem": "lualatex",
-#     }
-# )
+mpl.use("pgf")
+mpl.rcParams.update(
+    {
+        "font.size": 14,
+        "font.family": "sans-serif",
+        "text.usetex": True,
+        "pgf.rcfonts": False,
+        "pgf.texsystem": "lualatex",
+    }
+)
 
 plot_mode = "png"
 
