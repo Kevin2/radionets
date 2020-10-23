@@ -19,7 +19,7 @@ mpl.rcParams.update(
     }
 )
 
-plot_mode = "png"
+plot_mode = "pdf"
 
 
 def open_csv(path, mode):
