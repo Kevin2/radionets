@@ -52,7 +52,7 @@ def list_pos_():
         nn.Dropout2d(),
         nn.Linear(4700, 470),
         nn.ReLU(),
-        nn.Dropout2d(),
+        nn.Dropout2d(p=0.3),
         nn.Linear(470, 5*2), 
         Lambda(clamp),
 #        Lambda(round_),

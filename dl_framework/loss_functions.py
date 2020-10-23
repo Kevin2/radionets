@@ -445,9 +445,7 @@ def pos_loss(x, y):
         inp[b] = inp[b,perm,:]
 
     loss = nn.MSELoss()
-    loss = loss(inp, tar)
-#    l = (loss[:,:,0]+loss[:,:,1])**0.5 
-
+    loss = loss(inp,tar)
 #    loss = loss.reshape(-1)
 #    for j in range(len(loss)):
 #        if abs(loss[j])<0.25:

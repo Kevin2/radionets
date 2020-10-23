@@ -15,11 +15,11 @@ class Lambda(nn.Module):
     def forward(self, x):
         return self.func(x)
 
-def permutation(x, y):
+def permutation(x, y, out_loss=False):
     """
-    Returns the permutation minimizing euclidean distance 
+    Returns the permutation minimizing Mean Squared Error 
     between predictions x and target y using hungarian 
-    algorithm.
+    algorithm or Mean Squared Error.
 
     Input
     ------
@@ -27,22 +27,31 @@ def permutation(x, y):
         Predicted Source positions
     y : torch tensor (:,5,2)
         True Source positions
+    out_loss: bool
+        Decide between output perm or loss
 
     Output
     ------
-    col: np-array
+    perm: np-array
         Permutation (for x) which minimizes euclidean distance.
+    or
+    loss: float
+        Mean Squared Error on best permutation
     """
-    d = nn.MSELoss(reduction='sum')
-    cost = np.zeros((x.shape[0],y.shape[0]))
+    d = nn.MSELoss(reduction='mean')
+    cost = torch.empty((x.shape[0],y.shape[0]))
     for i in range(len(cost)):
         for j in range(len(cost)):
-            cost[i,j] = (d(x[i], y[j]).item())**0.5
+            cost[i,j] = d(x[i], y[j])
     row, col = linear_sum_assignment(cost)
     perm = np.zeros(col.shape)
     for j in range(len(col)):
         perm[col[j]] = j
-    return perm
+    loss = cost[row,col].mean()
+    if out_loss==False:
+        return perm
+    else:
+        return loss
 
 def sort(x, entry=0):
     a = x[:,entry]
