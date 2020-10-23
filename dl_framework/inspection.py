@@ -1,5 +1,4 @@
 import torch
-import os
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -11,7 +10,8 @@ import dl_framework.architectures as architecture
 from dl_framework.model import load_pre_model
 from simulations.utils import adjust_outpath
 from pathlib import Path
-from gaussian_sources.inspection import visualize_with_fourier
+
+# ==from gaussian_sources.inspection import visualize_with_fourier
 
 
 # make nice Latex friendly plots
@@ -49,7 +49,7 @@ def load_pretrained_model(arch_name, model_path):
     return arch
 
 
-def get_images(test_ds, num_images, norm_path):
+def get_images(test_ds, num_images, norm_path=None):
     """
     Get n random test and truth images.
 
@@ -60,7 +60,7 @@ def get_images(test_ds, num_images, norm_path):
     num_images: int
         number of test images
     norm_path: str
-        path to normalization factors
+        path to normalization factors, if None: no normalization is applied
 
     Returns
     -------
@@ -76,6 +76,7 @@ def get_images(test_ds, num_images, norm_path):
         norm = pd.read_csv(norm_path)
         img_test = do_normalisation(img_test, norm)
     img_true = test_ds[rand][1]
+    # print(img_true.shape)
     if num_images == 1:
         img_test = img_test.unsqueeze(0)
         img_true = img_true.unsqueeze(0)
@@ -101,9 +102,10 @@ def eval_model(img, model):
     # if len(img.shape) == (3):
     # img = img.unsqueeze(0)
     model.eval()
+    model.cuda()
     with torch.no_grad():
-        pred = model(img.float())
-    return pred
+        pred = model(img.float().cuda())
+    return pred.cpu()
 
 
 def reshape_2d(array):
@@ -139,11 +141,11 @@ def plot_loss(learn, model_path):
     # second turn off the interactive mode
     mpl.use("Agg")
     plt.ioff()
-    name_model = model_path.split("/")[-1].split(".")[0]
-    save_path = model_path.split(".model")[0]
-    print("\nPlotting Loss for: {}\n".format(name_model))
+    save_path = model_path.with_suffix("")
+    print(f"\nPlotting Loss for: {model_path.stem}\n")
     learn.recorder.plot_loss()
-    plt.title(r"{}".format(name_model.replace("_", " ")))
+    plt.title(r"{}".format(str(model_path.stem).replace("_", " ")))
+    plt.yscale("log")
     plt.savefig(f"{save_path}_loss.pdf", bbox_inches="tight", pad_inches=0.01)
     plt.clf()
     mpl.rcParams.update(mpl.rcParamsDefault)
@@ -165,7 +167,7 @@ def plot_lr(learn, model_path):
     plt.ioff()
     save_path = model_path.with_suffix("")
     print(f"\nPlotting Learning rate for: {model_path.stem}\n")
-    learn.recorder.plot_lr()
+    plt.plot(learn.recorder.lrs)
     plt.savefig(f"{save_path}_lr.pdf", bbox_inches="tight", pad_inches=0.01)
     plt.clf()
     mpl.rcParams.update(mpl.rcParamsDefault)
@@ -190,7 +192,7 @@ def plot_lr_loss(learn, arch_name, out_path, skip_last):
     mpl.use("Agg")
     plt.ioff()
     print(f"\nPlotting Lr vs Loss for architecture: {arch_name}\n")
-    learn.recorder_lr_find.plot(skip_last, save=True)
+    learn.recorder.plot_lr_find()
     out_path.mkdir(parents=True, exist_ok=True)
     plt.savefig(out_path / "lr_loss.pdf", bbox_inches="tight", pad_inches=0.01)
     mpl.rcParams.update(mpl.rcParamsDefault)
@@ -266,14 +268,15 @@ def create_inspection_plots(learn, train_conf):
     print(img_true.reshape(5, -1, 5))  # 5
     print("-----------------------------------------------------------")
     print("-----------------------------------------------------------")
-    print(pred.cpu().reshape(5,5,-1))#.reshape(5,-1,5)
+    print(pred.cpu().reshape(5, 5, -1))  # .reshape(5,-1,5)
 
     if train_conf["fourier"]:
         for i in range(len(img_test)):
-            visualize_with_fourier(
-                i, img_test[i], pred[i], img_true[i], amp_phase=True, out_path=out_path
-            )
-    #else:
+            m = 0
+            # visualize_with_fourier(
+            #     i, img_test[i], pred[i], img_true[i], amp_phase=True, out_path=out_path
+            # )
+    # else:
     #    plot_results(
     #        img_test.cpu(),
     #        pred.cpu().reshape(5,-1,5),
@@ -281,3 +284,28 @@ def create_inspection_plots(learn, train_conf):
     #        out_path,
     #        save=True,
     #    )
+
+
+def make_axes_nice(fig, ax, im, title):
+    """Create nice colorbars for every axis in a subplot
+
+    Parameters
+    ----------
+    fig : figure object
+        current figure
+    ax : axis object
+        current axis
+    im : ndarray
+        plotted image
+    title : str
+        title of subplot
+    """
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.05)
+    ax.set_title(title)
+    cbar = fig.colorbar(im, cax=cax, orientation="vertical")
+    cbar.set_label("Intensity / a.u.")
+    # cbar.formatter.set_powerlimits((0, 0))
+    # cbar.update_ticks()

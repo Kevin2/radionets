@@ -53,3 +53,7 @@ mnist_cnn/old
 *.yaml
 .makerc
 .coverage
+
+dist/
+
+gaussian_sources/models/

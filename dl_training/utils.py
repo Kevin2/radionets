@@ -2,7 +2,7 @@ import sys
 import click
 from pathlib import Path
 from dl_framework.data import load_data, DataBunch, get_dls
-import dl_framework.architectures as architecture
+import dl_framework.architecture as architecture
 from dl_framework.inspection import plot_loss
 from dl_framework.model import save_model
 from dl_framework.inspection import create_inspection_plots
@@ -10,8 +10,12 @@ from dl_framework.inspection import create_inspection_plots
 
 def create_databunch(data_path, fourier, batch_size, transformed_imgs):
     # Load data sets
-    train_ds = load_data(data_path, "train", fourier=fourier, transformed_imgs=transformed_imgs)
-    valid_ds = load_data(data_path, "valid", fourier=fourier, transformed_imgs=transformed_imgs)
+    train_ds = load_data(
+        data_path, "train", fourier=fourier, transformed_imgs=transformed_imgs
+    )
+    valid_ds = load_data(
+        data_path, "valid", fourier=fourier, transformed_imgs=transformed_imgs
+    )
 
     # Create databunch with defined batchsize
     bs = batch_size
@@ -40,9 +44,10 @@ def read_config(config):
 
     train_conf["transformed_imgs"] = config["general"]["transformed_imgs"]
 
-    train_conf["max_lr"] = config["lr_find"]["max_lr"]
-    train_conf["min_lr"] = config["lr_find"]["min_lr"]
-
+    train_conf["param_scheduling"] = config["param_scheduling"]["use"]
+    train_conf["lr_start"] = config["param_scheduling"]["lr_start"]
+    train_conf["lr_max"] = config["param_scheduling"]["lr_max"]
+    train_conf["lr_stop"] = config["param_scheduling"]["lr_stop"]
     return train_conf
 
 
@@ -95,7 +100,7 @@ def pop_interrupt(learn, train_conf):
 
 def end_training(learn, train_conf):
     # Save model
-    save_model(learn, train_conf["model_path"])
+    save_model(learn, Path(train_conf["model_path"]))
 
     # Plot loss
-    plot_loss(learn, train_conf["model_path"])
+    plot_loss(learn, Path(train_conf["model_path"]))

@@ -6,11 +6,12 @@ from dl_framework.utils import children
 from dl_framework.model import permutation
 import torch.nn.functional as F
 import pytorch_msssim
+from dl_framework.regularization import inv_fft, calc_jet_angle, rot, calc_spec
 
 
 class FeatureLoss(nn.Module):
     def __init__(self, m_feat, base_loss, layer_ids, layer_wgts):
-        """"
+        """ "
         m_feat: enthält das vortrainierte Netz
         loss_features: dort werden alle features gespeichert, deren Loss
         man berechnen will
@@ -28,7 +29,7 @@ class FeatureLoss(nn.Module):
         # )
 
     def make_features(self, x, clone=False):
-        """"
+        """ "
         Hier wird das Objekt x durch das vortrainierte Netz geschickt und somit die
         Aktivierungsfunktionen berechnet. Dies geschieht sowohl einmal für
         die Wahrheit "target" und einmal für die Prediction "input"
@@ -139,6 +140,70 @@ def splitted_mse(x, y):
     return loss_real + loss_imag
 
 
+def regularization(pred_phase, img_true):
+    real_amp_re = img_true[:, 0].reshape(-1, 63 ** 2)
+    real_phase_re = img_true[:, 1].reshape(-1, 63 ** 2)
+    pred_phase_re = pred_phase[:, 0].reshape(-1, 63 ** 2)
+
+    img_pred = inv_fft(real_amp_re, pred_phase_re)
+    img_true = inv_fft(real_amp_re, real_phase_re)
+
+    m_true, n_true, alpha_true = calc_jet_angle(img_true)
+
+    img_rot_pred = rot(img_pred, alpha_true)
+    s_pred = calc_spec(img_rot_pred)
+    img_rot_true = rot(img_true, alpha_true)
+    s_true = calc_spec(img_rot_true)
+
+    img_rot_pred_cj = rot(img_pred, alpha_true - 90)
+    s_pred_cj = calc_spec(img_rot_pred_cj)
+    img_rot_true_cj = rot(img_true, alpha_true - 90)
+    s_true_cj = calc_spec(img_rot_true_cj)
+
+    loss_1 = (((s_pred - s_true) ** 2).sum(axis=0)).mean()
+    # print(loss_1)
+    # loss_2 = (((s_pred_cj - s_true_cj) ** 2).sum(axis=0)).mean()
+    # print(loss_2)
+    loss = loss_1  # + loss_2
+    print(loss)
+    return loss
+
+
+def my_loss(x, y):
+    img_true = y.clone()
+    y = y[:, 1].unsqueeze(1)
+    assert y.shape == x.shape
+    loss = (((x - y)).pow(2)).mean()
+    print(loss)
+    # final_loss = loss * 10 + regularization(x, img_true) / 100
+    # print(final_loss)
+    print("")
+    return loss
+
+
+def likelihood(x, y):
+    y = y[:, 0]
+    inp = x[:, 2]
+    unc = x[:, 1][inp == 0]
+    y_pred = x[:, 0][inp == 0]
+    y = y[inp == 0]
+    loss = (2 * torch.log(unc) + ((y - y_pred).pow(2) / unc.pow(2))).mean()
+    assert unc.shape == y_pred.shape == y.shape
+    return loss
+
+
+def likelihood_phase(x, y):
+    y = y[:, 1]
+    inp = x[:, 2]
+    unc = x[:, 1][inp == 0]
+    assert len(unc[unc <= 0]) == 0
+    y_pred = x[:, 0][inp == 0]
+    y = y[inp == 0]
+    loss = (2 * torch.log(unc) + ((y - y_pred).pow(2) / unc.pow(2))).mean()
+    assert unc.shape == y_pred.shape == y.shape
+    return loss
+
+
 def loss_amp(x, y):
     tar = y[:, 0, :].unsqueeze(1)
     assert tar.shape == x.shape
@@ -237,10 +302,7 @@ def loss_msssim_amp(x, y):
     inp_real = x
     tar_real = y[:, 0, :].unsqueeze(1)
 
-    loss = (
-        1.0
-        - pytorch_msssim.msssim(inp_real, tar_real, normalize="relu")
-    )
+    loss = 1.0 - pytorch_msssim.msssim(inp_real, tar_real, normalize="relu")
 
     return loss
 
@@ -283,7 +345,9 @@ def loss_mse_msssim_amp(x, y):
     ----------
     x : tensor
         ouptut of net
-    y : tensor
+    y : tenvisualize_with_fourier(
+            #     i, img_test[i], pred[i], img_true[i], amp_phase=True, out_path=out_path
+            # )sor
         target image
 
     Returns
@@ -346,25 +410,26 @@ def loss_mse_msssim(x, y):
 
     return loss_amp + loss_phase
 
+
 def list_loss_(x, y):
     """
     Adapted loss for source list output. Use on unsorted data. Sort along x.
     """
     x = x.reshape(-1, 5, 5)
 
-    #Sort target Tensor along x-coordinate (1. column)
-    a = y[:,:,0] # bs * x
+    # Sort target Tensor along x-coordinate (1. column)
+    a = y[:, :, 0]  # bs * x
     _, indices = torch.sort(a)
-    for j in range(len(indices[:,0])):
-        y[j] = y[j,indices[j],:]
+    for j in range(len(indices[:, 0])):
+        y[j] = y[j, indices[j], :]
 
-    inp_pos = x[:,:,:2]
-    inp_wdth = x[:,:,2:4]
-    inp_amp = x[:,:,4]
+    inp_pos = x[:, :, :2]
+    inp_wdth = x[:, :, 2:4]
+    inp_amp = x[:, :, 4]
 
-    tar_pos = y[:,:,:2]
-    tar_wdth = y[:,:,2:4]
-    tar_amp = y[:,:,4]
+    tar_pos = y[:, :, :2]
+    tar_wdth = y[:, :, 2:4]
+    tar_amp = y[:, :, 4]
 
     loss_pos = nn.SmoothL1Loss()
     loss_pos = loss_pos(inp_pos, tar_pos)
@@ -374,6 +439,7 @@ def list_loss_(x, y):
     loss_wdth = loss_amp_wdth(inp_wdth, tar_wdth)
 
     return loss_pos + loss_amp + loss_wdth
+
 
 def list_loss(x, y):
     """
@@ -381,13 +447,13 @@ def list_loss(x, y):
     """
     x = x.reshape(-1, 5, 5)
 
-    inp_pos = x[:,:,:2]
-    inp_wdth = x[:,:,2:4]
-    inp_amp = x[:,:,4]
+    inp_pos = x[:, :, :2]
+    inp_wdth = x[:, :, 2:4]
+    inp_amp = x[:, :, 4]
 
-    tar_pos = y[:,:,:2]
-    tar_wdth = y[:,:,2:4]
-    tar_amp = y[:,:,4]
+    tar_pos = y[:, :, :2]
+    tar_wdth = y[:, :, 2:4]
+    tar_amp = y[:, :, 4]
 
     loss_pos = nn.SmoothL1Loss()
     loss_pos = loss_pos(inp_pos, tar_pos)
@@ -398,57 +464,104 @@ def list_loss(x, y):
 
     return loss_pos + loss_amp + loss_wdth
 
+
 def loss_pos_(x, y):
     """
     Adapted Loss for source list output. Position only. Sort here.
     """
-    x = x.reshape(-1,5,2)
+    x = x.reshape(-1, 5, 2)
     inp = x
 
-    tar = y[:,:,:2]
+    tar = y[:, :, :2]
 
-    #Sort target
-    a = tar[:,:,0]
+    # Sort target
+    a = tar[:, :, 0]
     _, indices = torch.sort(a)
-    for j in range(len(indices[:,0])):
-        tar[j] = tar[j,indices[j],:]    
+    for j in range(len(indices[:, 0])):
+        tar[j] = tar[j, indices[j], :]
 
     loss = nn.SmoothL1Loss()
     loss = loss(inp, tar)
 
     return loss
+
 
 def loss_pos(x, y):
     """
     Adapted Loss for source list output. Position only. For data sorted beforehand.
     """
-    x = x.reshape(-1,5,2)
+    x = x.reshape(-1, 5, 2)
     inp = x
 
-    tar = y[:,:,:2]
+    tar = y[:, :, :2]
 
     loss = nn.SmoothL1Loss()
     loss = loss(inp, tar)
 
     return loss
+
 
 def pos_loss(x, y):
     """
     Permutation Loss for Source-positions list. With hungarian method
     to solve assignment problem.
     """
-    inp = x.reshape(-1,5,2)
-    tar = y[:,:,:2]
+    inp = x.reshape(-1, 5, 2)
+    tar = y[:, :, :2]
 
     for b in range(inp.shape[0]):
-        perm = permutation(inp[b],tar[b])
-        inp[b] = inp[b,perm,:]
+        perm = permutation(inp[b], tar[b])
+        inp[b] = inp[b, perm, :]
 
     loss = nn.MSELoss()
-    loss = loss(inp,tar)
-#    loss = loss.reshape(-1)
-#    for j in range(len(loss)):
-#        if abs(loss[j])<0.25:
-#            loss[j] = 0
+    loss = loss(inp, tar)
 
+    #    loss = loss.reshape(-1)
+    #    for j in range(len(loss)):
+    #        if abs(loss[j])<0.25:
+    #            loss[j] = 0
+    return loss
+
+
+def spe(x, y):
+    y = y.squeeze()
+    x = x.squeeze()
+    # y = y[:, 0:2]
+    loss = []
+    value = 0
+    for i in range(len(x)):
+        value += torch.abs(x[i] - y[i])
+        loss.append(value)
+        value = 0
+    loss = sum(loss) / len(x)
+    return loss
+
+
+def spe_square(x, y):
+    y = y.squeeze()
+    loss = []
+    value = 0
+    for i in range(len(x)):
+        for k in range(1, len(x[0])):
+            if k == 1:
+                value += (x[i][k - 1] - y[i][k - 1] + x[i][k] - y[i][k]) ** 2
+            else:
+                value += torch.abs(x[i][k] - y[i][k])
+        loss.append(value / len(x[0]))
+        value = 0
+    k = sum(loss)
+    loss = k / len(x)
+    return loss
+
+
+def spe_(x, y):
+    loss = []
+    value = 0
+    for i in range(len(x)):
+        for k in range(len(x[0])):
+            value += torch.abs(x[i][k] - y[i][k])
+        loss.append(value / len(x[0]))
+        value = 0
+    k = sum(loss)
+    loss = k / len(x)
     return loss

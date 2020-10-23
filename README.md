@@ -1,65 +1,75 @@
 # radionets [![Build Status](https://travis-ci.com/Kevin2/radionets.svg?branch=master)](https://travis-ci.org/kevin2/radionets)
 
-### Imaging radio interferometric data with neural networks
+## Imaging Radio Interferometric Data with Neural Networks
 
-Executables to simulate and analyze radio interferometric data in python. The goal is to reconstruct (image) calibrated observations with convolutional neural networks. 
-This repository is build up as a python package. After cloning you can install it with
-`pip install .` after navigating to the folder.
-While installing you may experience some problems with cartopy. In this case you have to install a proj and a geos library before:
+Executables to simulate and analyze radio interferometric data in python. The goal is to reconstruct calibrated observations with convolutional neural networks to create high resolution images. 
+
+Analysis strategies leading to a reproducible processing and evaluation of data recorded by radio interferometers:
+* Simulation of datasets
+* Training of deep learning models
+* Reconstruction of radio interferometric data
+
+## Installation
+
+This repository is build up as a python package. It is recommended to create an own conda environment to handle the dependencies of the packages. You can create one by running the following command in this repository:
 ```
-sudo apt-get -y install libgeos-dev
-sudo apt-get -y install libproj-dev
+$ conda env create -f environment.yaml
 ```
-When you still have problems installing cartopy you can try the version on conda-forge:
-```
-conda install --channel conda-forge cartopy
-```
+Depending on your `cuda` version you have to specify the `cudatoolkit` version used by `pytorch`. If you working on machines with `cuda` versions < 10.2, please
+change the version number in the environment.yml file.
 
-At the moment the repository covers the following blocks:
+## Usage
 
-## dl_framework
+For each tasks executables are intstalled to your `PATH`. Each of them take `toml` configuration files as input, to manage data paths and options.
+Simulated data is saved in `hdf5`, trained models are saved as `pickle` files.
 
-Framework used to create and train neural networks. Most of it can be found in [Practical Deep Learning for Coders, v3](https://course.fast.ai/index.html). Check it out for more information including a nice tutorial about deep learning.
+* `radionets_simulate <...>`
+  This script is used to simulate radio interferometric datasets for the training of deep learning models.
+* `radionets_training <...>`
+  This script is used to train a model on events with known truth
+  values for the target variable, usually monte carlo simulations.
+* `radionets_evaluation <...>`
+  This script is used to evaluate the performance of the trained deep learning models.
+* `radionets_reconstruction <...>`
+  This script is used to reconstruct radio interferometric data using a trained deep learning model.
 
-## simulations
 
-Functions to simulate and illustrate radio interferometric observations.
+## Structure of the Repository
 
-* Define antenna arrays
-* Calculate baselines
-* Simulate (uv)-coverages
-* Create (uv)-masks
-* Illustrate uv-coverages and baselines for different observations
+### dl_framework
 
-## mnist_cnn
+The used deep learning framework is based on [pytorch](https://pytorch.org/) and [fastai](https://www.fast.ai/).
+An introduction to neural networks and an overview of the use of fastai to train deep learning models can be found in [Practical Deep Learning for Coders, v3](https://course.fast.ai/index.html) and [fastbook](https://github.com/fastai/fastbook).
 
-Feasibility study to test analysis strategies with convolutional neural networks.
+### dl_training
 
-* Reconstruct handwritten digits from their sampled Fourier spectrum
-* Simulated VLBA observations used for sampling
-* Simple CNN model for reconstruction and retransformation
+Functions for handling the different training options.
 
-All analysis steps can be run using the Makefile inside the mnist_cnn directory.
-The different steps for an example analysis are:
-1. mnist_fft: rescale and create the Fourier transformation of the mnist images
-2. mnist_samp: sample the Fourier space with simulated (uv)-coverages
-3. calc_normalization: calculate normalization factors to normalize train and valid dataset
-4. cnn_training: train the convolutional neural network, many options are available here
+### simulations
 
-## pointsources
+Functions to simulate and illustrate radio interferometric observations. At the moment simulations based on the MNIST dataset and 
+simulations of Gaussian sources are possible.
 
-Simulation of pointsource delta peaks. Reconstruction with UNet architectures. Different functions to 
-evaluate the reconstruction results.
+### evaluation
 
-## gauss
+'''
+evaluate training process with different approaches
 
-Simulation of pointlike gauss sources. Reconstruction with UNet architectures. Different functions to 
-evaluate the reconstruction results.
+ms-ssim
+blob-detection
+'''
 
-## Versions used
+## Contributors
 
-* Python 3.7.5
-* pyTorch 1.2.0
-* cuda V10.1.243
+* Kevin Schmidt [@Kevin2](https://github.com/Kevin2)
+* Felix Geyer [@FritzGeise](https://github.com/FritzGeise)
+* Kevin Laudamus [@K-Lauda](https://github.com/K-Lauda)
+* Emiliano Miranda [@emilianozm24](https://github.com/emilianozm24)
+* Maximilian Büchel [@MaxBue](https://github.com/MaxBue)
 
-A detailed view of all versions used can be found in setup.py.
+## Versions used and tested
+
+* Python >= 3.6
+* pyTorch >= 1.2.0
+* torchvision >= 0.4.0
+* cudatoolkit >= 9.2
