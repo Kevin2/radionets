@@ -29,7 +29,7 @@ def list_pos_():
         nn.Dropout2d(p=0.3),
         nn.Linear(470, 5 * 2),
         Lambda(clamp),
-        #        Lambda(round_),
+        #Lambda(round_),
     )
     return arch
 

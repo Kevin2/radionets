@@ -14,6 +14,7 @@ from dl_framework.model import load_pre_model
 from dl_framework.hooks import model_summary
 from dl_framework.inspection import (
     create_inspection_plots,
+    create_inspection_lists,
     plot_lr_loss,
     plot_loss,
     plot_lr,
@@ -30,6 +31,7 @@ from pathlib import Path
             "train",
             "lr_find",
             "plot_loss",
+            "evaluate",
         ],
         case_sensitive=False,
     ),
@@ -101,7 +103,7 @@ def main(configuration_path, mode):
         end_training(learn, train_conf)
 
         if train_conf["inspection"]:
-            create_inspection_plots(learn, train_conf)
+            create_inspection_lists(learn, train_conf, mode)
 
     if mode == "lr_find":
         click.echo("Start lr_find.\n")
@@ -147,6 +149,23 @@ def main(configuration_path, mode):
 
         plot_lr(learn, Path(train_conf["model_path"]))
         plot_loss(learn, Path(train_conf["model_path"]), log=True)
+
+    if mode == "evaluate":
+        click.echo("Start evaluation of a pretrained model.\n")
+
+        learn = define_learner(
+            data,
+            arch,
+            train_conf,
+        )
+        if train_conf["pre_model"] != "none":
+            load_pre_model(learn, train_conf["pre_model"])
+        else:
+            click.echo("No pretrained model was selected.")
+            click.echo("Exiting.\n")
+            sys.exit()
+
+        create_inspection_lists(learn, train_conf, mode)
 
 #    model_summary(learn)
 

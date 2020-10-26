@@ -15,6 +15,31 @@ class Lambda(nn.Module):
     def forward(self, x):
         return self.func(x)
 
+
+class HungarianMatcher(nn.Module):
+    """
+    Balanced assignment Problem (outputs.shape[1]=targets.shape[1])
+    """
+    def __init__(self):
+        super().__init__()
+
+    @torch.no_grad()
+    def forward(self, outputs, targets):
+        bs, _, coords = outputs.shape
+
+        assert coords is targets.shape[2]
+
+        C = torch.cdist(targets, outputs, p=1)
+        C = C.cpu()
+
+        indices = [linear_sum_assignment(C[b]) for b in range(bs)]
+        return [(torch.as_tensor(j), torch.as_tensor(i)) for i, j in indices]
+
+
+def build_matcher():
+    return HungarianMatcher()
+
+
 def permutation(x, y, out_loss=False):
     """
     Returns the permutation minimizing Mean Squared Error 
@@ -53,7 +78,11 @@ def permutation(x, y, out_loss=False):
     else:
         return loss
 
-def sort(x, entry=0):
+def sort(x, permutation):
+    return x[permutation,:]
+    
+
+def sort_ascending(x, entry=0):
     a = x[:,entry]
     if type(a)== np.ndarray:
         a = torch.from_numpy(a)

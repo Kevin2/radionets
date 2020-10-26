@@ -8,7 +8,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.pyplot as plt
 from dl_framework.data import do_normalisation, load_data
 import dl_framework.architectures as architecture
-from dl_framework.model import load_pre_model
+from dl_framework.model import load_pre_model, build_matcher, sort
 from simulations.utils import adjust_outpath
 from pathlib import Path
 from gaussian_sources.inspection import visualize_with_fourier
@@ -79,7 +79,7 @@ def get_images(test_ds, num_images, norm_path):
     if num_images == 1:
         img_test = img_test.unsqueeze(0)
         img_true = img_true.unsqueeze(0)
-    return img_test, img_true
+    return img_test, img_true, rand
 
 
 def eval_model(img, model):
@@ -249,6 +249,34 @@ def plot_results(inp, pred, truth, model_path, save=False):
             plt.savefig(out_path, bbox_inches="tight", pad_inches=0.01)
 
 
+def create_inspection_lists(learn, train_conf, mode):
+    test_ds = load_data(
+        train_conf["data_path"],
+        "test",
+        fourier=train_conf["fourier"],
+        transformed_imgs=train_conf["transformed_imgs"],
+    )
+    img_test, list_true, ind = get_images(test_ds, 5, train_conf["norm_path"])
+    if mode=="train":
+        pred = eval_model(img_test.cuda(), learn.model)
+    elif mode=="evaluate":
+        pred = eval_model(img_test, learn.model)
+    pred = pred.reshape(5, -1, 2)
+
+    truth = list_true.reshape(5, -1, 5)
+    truth = truth[:, :, :2]
+
+    matcher = build_matcher()
+    matches = matcher(pred, truth)
+    pred_ord, _ = zip(*matches)
+
+    pred = torch.stack([sort(pred[v], pred_ord[v]) for v in range(len(pred))])
+
+    compare = torch.stack((pred, truth), dim=1)
+    print(compare)
+    print(ind)
+
+
 def create_inspection_plots(learn, train_conf):
     test_ds = load_data(
         train_conf["data_path"],
@@ -256,28 +284,23 @@ def create_inspection_plots(learn, train_conf):
         fourier=train_conf["fourier"],
         transformed_imgs=train_conf["transformed_imgs"],
     )
-    img_test, img_true = get_images(test_ds, 5, train_conf["norm_path"])  # 5
+    img_test, img_true, _ = get_images(test_ds, 5, train_conf["norm_path"])  # 5
 
     pred = eval_model(img_test.cuda(), learn.model)
 
     model_path = train_conf["model_path"]
     out_path = Path(model_path).parent
 
-    print(img_true.reshape(5, -1, 5))  # 5
-    print("-----------------------------------------------------------")
-    print("-----------------------------------------------------------")
-    print(pred.cpu().reshape(5,5,-1))#.reshape(5,-1,5)
-
     if train_conf["fourier"]:
         for i in range(len(img_test)):
             visualize_with_fourier(
                 i, img_test[i], pred[i], img_true[i], amp_phase=True, out_path=out_path
             )
-    #else:
-    #    plot_results(
-    #        img_test.cpu(),
-    #        pred.cpu().reshape(5,-1,5),
-    #        img_true.reshape(5,-1,5),
-    #        out_path,
-    #        save=True,
-    #    )
+    else:
+        plot_results(
+            img_test.cpu(),
+            reshape_2d(pred),
+            reshape_2d(img_true),
+            out_path,
+            save=True,
+        )

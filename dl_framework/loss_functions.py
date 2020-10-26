@@ -3,7 +3,7 @@ from torch import nn
 from dl_framework.hook_fastai import hook_outputs
 from torchvision.models import vgg16_bn
 from dl_framework.utils import children
-from dl_framework.model import permutation
+from dl_framework.model import build_matcher, sort
 import torch.nn.functional as F
 import pytorch_msssim
 
@@ -437,15 +437,19 @@ def pos_loss(x, y):
     Permutation Loss for Source-positions list. With hungarian method
     to solve assignment problem.
     """
-    inp = x.reshape(-1,5,2)
+    out = x.reshape(-1,5,2)
     tar = y[:,:,:2]
 
-    for b in range(inp.shape[0]):
-        perm = permutation(inp[b],tar[b])
-        inp[b] = inp[b,perm,:]
+    matcher = build_matcher()
+    matches = matcher(out, tar)
+
+    out_ord, _ = zip(*matches)
+
+    ordered = [sort(out[v], out_ord[v]) for v in range(len(out))]
+    out = torch.stack(ordered)
 
     loss = nn.MSELoss()
-    loss = loss(inp,tar)
+    loss = loss(out,tar)
 #    loss = loss.reshape(-1)
 #    for j in range(len(loss)):
 #        if abs(loss[j])<0.25:
