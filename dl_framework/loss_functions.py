@@ -348,32 +348,38 @@ def loss_mse_msssim(x, y):
 
 def list_loss_(x, y):
     """
-    Adapted loss for source list output. Use on unsorted data. Sort along x.
+    Adapted loss for source list output. With hungarian matcher.
     """
     x = x.reshape(-1, 5, 5)
 
-    #Sort target Tensor along x-coordinate (1. column)
-    a = y[:,:,0] # bs * x
-    _, indices = torch.sort(a)
-    for j in range(len(indices[:,0])):
-        y[j] = y[j,indices[j],:]
+    #Solve assignment Problem w/ Hungarian Matcher 
+    out_pos = x[:, :, :2]
+    tar_pos = y[:, :, :2]
 
-    inp_pos = x[:,:,:2]
-    inp_wdth = x[:,:,2:4]
-    inp_amp = x[:,:,4]
+    matcher = build_matcher()
+    matches = matcher(out_pos, tar_pos)
+    out_ord, _ = zip(*matches)
 
-    tar_pos = y[:,:,:2]
-    tar_wdth = y[:,:,2:4]
-    tar_amp = y[:,:,4]
+    ordered = [sort(x[v], out_ord[v]) for v in range(len(x))]
+    x = torch.stack(ordered)
 
-    loss_pos = nn.SmoothL1Loss()
-    loss_pos = loss_pos(inp_pos, tar_pos)
+#    tar_wdth = y[:, :, 2:4]
+    tar_amp = y[:, :, 4]
+    out_pos = x[:, :, :2]
+#    out_wdth = x[:, :, 2:4]
+    out_amp = x[:, :, 4]
 
-    loss_amp_wdth = nn.MSELoss()
-    loss_amp = loss_amp_wdth(inp_amp, tar_amp)
-    loss_wdth = loss_amp_wdth(inp_wdth, tar_wdth)
+#    loss_pos = nn.SmoothL1Loss()
+#    loss_pos = loss_pos(out_pos, tar_pos)
 
-    return loss_pos + loss_amp + loss_wdth
+#    loss_amp_wdth = nn.MSELoss()
+#    loss_amp = loss_amp_wdth(out_amp, tar_amp)
+#    loss_wdth = loss_amp_wdth(inp_wdth, tar_wdth)
+
+    loss = nn.MSELoss()
+    loss1 = loss(out_pos, tar_pos)
+    loss2 = loss(out_amp, tar_amp)
+    return loss1 + loss2
 
 def list_loss(x, y):
     """

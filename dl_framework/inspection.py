@@ -49,7 +49,7 @@ def load_pretrained_model(arch_name, model_path):
     return arch
 
 
-def get_images(test_ds, num_images, norm_path):
+def get_images(test_ds, num_images, norm_path, ind=0):
     """
     Get n random test and truth images.
 
@@ -69,17 +69,26 @@ def get_images(test_ds, num_images, norm_path):
     img_true: n 2d arrays
         truth images
     """
-    rand = torch.randint(0, len(test_ds), size=(num_images,))
-    img_test = test_ds[rand][0]
+    if ind==0:
+        if len(test_ds)==num_images:
+            ind = torch.arange(num_images)
+        else:
+            ind = torch.randint(0, len(test_ds), size = (1,))
+            while ind.shape[0] != num_images:
+                ind = torch.randint(0, len(test_ds), size=(num_images,))
+                ind = torch.unique(ind)
+    else:
+        ind = torch.unique(torch.tensor(ind))
+    img_test = test_ds[ind][0]
     norm = "none"
     if norm_path != "none":
         norm = pd.read_csv(norm_path)
         img_test = do_normalisation(img_test, norm)
-    img_true = test_ds[rand][1]
+    img_true = test_ds[ind][1]
     if num_images == 1:
         img_test = img_test.unsqueeze(0)
         img_true = img_true.unsqueeze(0)
-    return img_test, img_true, rand
+    return img_test, img_true, ind
 
 
 def eval_model(img, model):
@@ -249,32 +258,57 @@ def plot_results(inp, pred, truth, model_path, save=False):
             plt.savefig(out_path, bbox_inches="tight", pad_inches=0.01)
 
 
-def create_inspection_lists(learn, train_conf, mode):
+def create_inspection_lists(learn, train_conf, mode, num_tests=5):
     test_ds = load_data(
         train_conf["data_path"],
         "test",
         fourier=train_conf["fourier"],
         transformed_imgs=train_conf["transformed_imgs"],
     )
-    img_test, list_true, ind = get_images(test_ds, 5, train_conf["norm_path"])
+    img_test, list_true, ind = get_images(test_ds, num_tests, train_conf["norm_path"])
+
+    print("\n")
+    print("Calculating Predictions: ")
+
+    truth = list_true.reshape(num_tests, -1, 5)
+    truth = truth[:, :, :2]
+
     if mode=="train":
         pred = eval_model(img_test.cuda(), learn.model)
+        pred = pred.cpu()
     elif mode=="evaluate":
         pred = eval_model(img_test, learn.model)
-    pred = pred.reshape(5, -1, 2)
 
-    truth = list_true.reshape(5, -1, 5)
-    truth = truth[:, :, :2]
+    pred = pred.reshape(num_tests, -1, 2)
+    num_s = pred.shape[1]
 
     matcher = build_matcher()
     matches = matcher(pred, truth)
     pred_ord, _ = zip(*matches)
 
-    pred = torch.stack([sort(pred[v], pred_ord[v]) for v in range(len(pred))])
+    pred = torch.stack([sort(pred[v], pred_ord[v]) for v in range(num_tests)])
 
-    compare = torch.stack((pred, truth), dim=1)
-    print(compare)
-    print(ind)
+    dist = [torch.cdist(pred[v], truth[v]).trace()/num_s for v in range(num_tests)]
+    acc = [(1 - err/img_test.shape[-1]) for err in dist]
+
+    dist=torch.stack(dist)
+    acc=torch.stack(acc)
+
+    if num_tests <= 10:
+        compare = torch.stack((pred, truth), dim=1)
+        print(compare)
+        print(ind)
+        print(dist)
+    else:
+        print("Showing only the first 10 tests")
+        print("\n")
+        compare = torch.stack((pred[:10], truth[:10]), dim=1)
+        print(compare)
+        print(ind[:10])
+        print(dist[:10])
+
+    print('Mean accuracy: ', "{:.2f}".format(1e2*acc.mean().item()), "%")
+    print('For ', num_tests, 'tests.')
 
 
 def create_inspection_plots(learn, train_conf):

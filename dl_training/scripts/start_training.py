@@ -103,7 +103,8 @@ def main(configuration_path, mode):
         end_training(learn, train_conf)
 
         if train_conf["inspection"]:
-            create_inspection_lists(learn, train_conf, mode)
+            num_tests=train_conf["num_tests"]
+            create_inspection_lists(learn, train_conf, mode, num_tests)
 
     if mode == "lr_find":
         click.echo("Start lr_find.\n")
@@ -165,7 +166,8 @@ def main(configuration_path, mode):
             click.echo("Exiting.\n")
             sys.exit()
 
-        create_inspection_lists(learn, train_conf, mode)
+        num_tests = train_conf["num_tests"]
+        create_inspection_lists(learn, train_conf, mode, num_tests=num_tests)
 
 #    model_summary(learn)
 

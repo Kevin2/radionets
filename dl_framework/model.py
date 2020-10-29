@@ -81,7 +81,6 @@ def permutation(x, y, out_loss=False):
 def sort(x, permutation):
     return x[permutation,:]
     
-
 def sort_ascending(x, entry=0):
     a = x[:,entry]
     if type(a)== np.ndarray:
@@ -94,7 +93,13 @@ def reshape(x):
     return x.reshape(-1,2,63,63)
 
 def round_(x):
-    return torch.round(x)
+    pos = x[:, :, :2]
+    if pos.shape==x.shape:
+        return torch.round(x)
+    else:
+        pos = torch.round(pos)
+        rest = x[:, :, 2:]
+        return torch.cat((pos, rest), dim=2)
 
 def clamp(x):
     return torch.clamp(x, 0, 63)

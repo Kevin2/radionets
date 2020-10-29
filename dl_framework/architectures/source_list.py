@@ -7,6 +7,7 @@ from dl_framework.model import (
     absolute,
     normalization,
     clamp,
+    round_,
 )
 
 
@@ -23,10 +24,10 @@ def list_pos_():
         Lambda(flatten),
         nn.Linear(47628, 4700),
         nn.ReLU(),
-        nn.Dropout2d(),
+        nn.Dropout(),
         nn.Linear(4700, 470),
         nn.ReLU(),
-        nn.Dropout2d(p=0.3),
+        nn.Dropout(p=0.3),
         nn.Linear(470, 5 * 2),
         Lambda(clamp),
         #Lambda(round_),
@@ -46,10 +47,10 @@ def list_pos():
         Lambda(flatten),
         nn.Linear(23814, 2300),
         nn.ReLU(),
-        nn.Dropout2d(p=0.4),
+        nn.Dropout(p=0.3),
         nn.Linear(2300, 230),
         nn.ReLU(),
-        nn.Dropout2d(p=0.3),
+        nn.Dropout(p=0.3),
         nn.Linear(230, 5 * 2),
         Lambda(clamp),
     )
@@ -78,8 +79,6 @@ def cnn_list():
     conv-layers with source list as target, do fft beforehand so input=dirtyim.
     """
     arch = nn.Sequential(
-        # Lambda(euler_),
-        # Lambda(fft_),
         Lambda(unsqueeze1),
         *conv(1, 5, (3, 3), 1, 0),
         *conv(5, 25, (3, 3), 1, 0),
@@ -101,23 +100,22 @@ def cnn_list_big():
     Big arch; Conv-layers with source list as target. FFT beforehand.
     """
     arch = nn.Sequential(
-        # Lambda(euler_),
-        # Lambda(fft_),
         Lambda(unsqueeze1),
-        # nn.BatchNorm2d(64)
         *conv(1, 5, (3, 3), 1, 0),
         *conv(5, 25, (3, 3), 1, 0),
         nn.MaxPool2d((3, 3), 2),
         *conv(25, 50, (3, 3), 1, 0),  # 50*27*27
         *conv(50, 75, (3, 3), 1, 0),  # 75*25*25
-        nn.Dropout2d(),
         nn.MaxPool2d((3, 3), 2),  # 75*12*12
         Lambda(flatten),
         nn.Linear(10800, 2500),
         nn.ReLU(),
+        nn.Dropout(),
         nn.Linear(2500, 250),
         nn.ReLU(),
+        nn.Dropout(p=0.2),
         nn.Linear(250, 5 * 5),
-        Lambda(absolute),
+        Lambda(clamp),
+        Lambda(round_),
     )
     return arch

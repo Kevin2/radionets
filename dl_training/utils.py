@@ -26,6 +26,8 @@ def read_config(config):
     train_conf["pre_model"] = config["paths"]["pre_model"]
     train_conf["norm_path"] = config["paths"]["norm_path"]
 
+    train_conf["num_tests"] = config["evaluation"]["num_tests"]
+
     train_conf["batch_mode"] = config["mode"]["batch_mode"]
     train_conf["telegram_logger"] = config["mode"]["telegram_logger"]
 

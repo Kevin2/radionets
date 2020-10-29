@@ -18,6 +18,7 @@ from dl_framework.loss_functions import (
     loss_mse_msssim_amp,
     loss_msssim_amp,
     list_loss,
+    list_loss_,
     loss_pos,
     loss_pos_,
     pos_loss,
@@ -275,6 +276,8 @@ def define_learner(
         loss_func = loss_msssim_amp
     elif loss_func == "list_loss":
         loss_func = list_loss
+    elif loss_func == "list_loss_":
+        loss_func = list_loss_
     elif loss_func == "loss_pos":
         loss_func = loss_pos
     elif loss_func == "loss_pos_":
