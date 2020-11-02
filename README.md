@@ -7,19 +7,22 @@ This repository is build up as a python package. After cloning you can install i
 `pip install .` after navigating to the folder.
 While installing you may experience some problems with cartopy. In this case you have to install a proj and a geos library before:
 ```
-sudo apt-get -y install libgeos-dev
-sudo apt-get -y install libproj-dev
-```
-When you still have problems installing cartopy you can try the version on conda-forge:
-```
-conda install --channel conda-forge cartopy
+$ conda env create -f environment.yml
 ```
 
 At the moment the repository covers the following blocks:
 
-## dl_framework
+* `radionets_simulations <...>`
+  This script is used to simulate radio interferometric datasets for the training of deep learning models.
+* `radionets_training <...>`
+  This script is used to train a model on events with known truth
+  values for the target variable, usually monte carlo simulations.
+* `radionets_evaluation <...>`
+  This script is used to evaluate the performance of the trained deep learning models.
+* `radionets_reconstruction <...>`
+  This script is used to reconstruct radio interferometric data using a trained deep learning model.
 
-Framework used to create and train neural networks. Most of it can be found in [Practical Deep Learning for Coders, v3](https://course.fast.ai/index.html). Check it out for more information including a nice tutorial about deep learning.
+Default configuration files can be found in the examples directory.
 
 ## simulations
 
@@ -56,10 +59,9 @@ evaluate the reconstruction results.
 Simulation of pointlike gauss sources. Reconstruction with UNet architectures. Different functions to 
 evaluate the reconstruction results.
 
-## Versions used
+## Versions used and tested
 
-* Python 3.7.5
-* pyTorch 1.2.0
-* cuda V10.1.243
-
-A detailed view of all versions used can be found in setup.py.
+* Python >= 3.6
+* pyTorch >= 1.2.0
+* torchvision >= 0.4.0
+* cudatoolkit >= 9.2

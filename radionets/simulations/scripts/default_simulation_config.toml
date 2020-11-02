@@ -1,0 +1,45 @@
+# This is a TOML document.
+
+title = "Simulation configuration"
+
+[mode]
+batch_mode = false
+
+[paths]
+data_path = "./build/"
+data_format = "h5"
+
+[mnist]
+simulate = false
+resource = "../../resources/mnist.pkl.gz"
+
+[gaussians]
+simulate = true
+pointsources = false
+num_pointsources = 10
+pointlike_gaussians = true
+num_pointlike_gaussians = 5
+extended_gaussians = false
+num_components = [4, 10]
+
+
+[image_options]
+bundles_train = 2
+bundles_valid = 1
+bundles_test = 1
+bundle_size = 500
+img_size = 63
+noise = false
+
+[sampling_options]
+amp_phase = true
+real_imag = false
+fourier = true
+specific_mask = true
+lon = -80
+lat = 50
+steps = 50
+antenna_config = "vlba"
+compressed = false
+keep_fft_files = true
+source_list = false

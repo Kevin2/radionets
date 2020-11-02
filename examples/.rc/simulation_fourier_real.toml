@@ -1,0 +1,45 @@
+# This is a TOML document.
+
+title = "Simulation configuration"
+
+[mode]
+batch_mode = true
+
+[paths]
+data_path = "./example_data/fourier_real"
+data_format = "h5"
+
+[mnist]
+simulate = false
+resource = "../../resources/mnist.pkl.gz"
+
+[gaussians]
+simulate = true
+pointsources = false
+num_pointsources = 10
+pointlike_gaussians = false
+num_pointlike_gaussians = 5
+extended_gaussians = true
+num_components = [4, 10]
+
+
+[image_options]
+bundles_train = 1
+bundles_valid = 1
+bundles_test = 1
+bundle_size = 10
+img_size = 63
+noise = false
+
+[sampling_options]
+fourier = true
+real_imag = true
+amp_phase = false
+antenna_config = "vlba"
+specific_mask = true
+lon = -80
+lat = 50
+steps = 50
+keep_fft_files = true
+source_list = false
+compressed = false
