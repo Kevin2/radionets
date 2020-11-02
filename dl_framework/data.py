@@ -6,6 +6,7 @@ import numpy as np
 from pathlib import Path
 from dl_framework.model import fft_, euler_
 
+
 def normalize(x, m, s):
     return (x - m) / s
 
@@ -93,22 +94,24 @@ class h5_dataset:
         # distinguish between compressed (npz) or not compressed (h5)
         if re.search(".npz", str(self.bundles[bundle[0]])):
             bundle_paths = [
-                np.load(self.bundles[bundle], mmap_mode='r') for bundle in bundle_unique
+                np.load(self.bundles[bundle], mmap_mode="r") for bundle in bundle_unique
             ]
         else:
             bundle_paths = [
-                h5py.File(self.bundles[bundle], 'r') for bundle in bundle_unique
+                h5py.File(self.bundles[bundle], "r") for bundle in bundle_unique
             ]
         bundle_paths_str = list(map(str, bundle_paths))
         data = torch.tensor(
             [
                 bund[var][img]
                 for bund, bund_str in zip(bundle_paths, bundle_paths_str)
-                for img in image[bundle == bundle_unique[bundle_paths_str.index(bund_str)]]
+                for img in image[
+                    bundle == bundle_unique[bundle_paths_str.index(bund_str)]
+                ]
             ]
         )
 
-        if (var == "x" and self.transformed_imgs==False) or self.tar_fourier is True:
+        if (var == "x" and self.transformed_imgs == False) or self.tar_fourier is True:
             if len(i) == 1:
                 data_amp, data_phase = data[:, 0], data[:, 1]
 
@@ -117,9 +120,11 @@ class h5_dataset:
                 data_amp, data_phase = data[:, 0].unsqueeze(1), data[:, 1].unsqueeze(1)
 
                 data_channel = torch.cat([data_amp, data_phase], dim=1)
-        elif var == "x" and self.transformed_imgs==True:
+        elif var == "x" and self.transformed_imgs == True:
             if data.shape[1] == 2:
-                raise ValueError("Two channeled data is used despite Fourier being False. Set Fourier to True!")
+                raise ValueError(
+                    "Two channeled data is used despite Fourier being False. Set Fourier to True!"
+                )
             if len(i) == 1:
                 data_channel = data.reshape(data.shape[-1], data.shape[-1])
             else:
@@ -128,12 +133,16 @@ class h5_dataset:
             if data.shape[1] == 2:
                 raise ValueError("Size Error")
             if len(i) == 1:
-                data_channel = data.reshape(-1,5) #1. index number of sourcesthere is always 5 params.
+                data_channel = data.reshape(
+                    -1, 5
+                )  # 1. index number of sourcesthere is always 5 params.
             else:
-                data_channel = data.reshape(len(i),-1,5)#2.index #sources
+                data_channel = data.reshape(len(i), -1, 5)  # 2.index #sources
         else:
             if data.shape[1] == 2:
-                raise ValueError("Two channeled data is used despite Fourier being False. Set Fourier to True!")
+                raise ValueError(
+                    "Two channeled data is used despite Fourier being False. Set Fourier to True!"
+                )
             if len(i) == 1:
                 data_channel = data.reshape(data.shape[-1] ** 2)
             else:
@@ -188,6 +197,7 @@ def save_bundle(path, bundle, counter, name="gs_bundle"):
         hf.create_dataset(name, data=bundle)
         hf.close()
 
+
 def fourier_trafo(filepath):
     """
     Transform sampled fft data bundles to get dirty images
@@ -195,6 +205,7 @@ def fourier_trafo(filepath):
     fft, truth = open_fft_pair(filepath)
     tra = fft_(euler_(fft))
     return tra, truth
+
 
 # open and save functions should be generalized in future versions
 
@@ -210,7 +221,7 @@ def open_bundle(path):
 
 def open_fft_bundle(path):
     """
-    open radio galaxy bundles created in first analysis step for 
+    open radio galaxy bundles created in first analysis step for
     source_list=True
     z is source list.
     """
@@ -228,6 +239,7 @@ def get_bundles(path):
     bundles = np.array([x for x in data_path.iterdir()])
     return bundles
 
+
 def save_fft_pair(path, x, y, name_x="x", name_y="y"):
     """
     write fft_pairs created in second analysis step to h5 file
@@ -236,6 +248,7 @@ def save_fft_pair(path, x, y, name_x="x", name_y="y"):
         hf.create_dataset(name_x, data=x)
         hf.create_dataset(name_y, data=y)
         hf.close()
+
 
 def save_fft_pair_list(path, x, y, z, name_x="x", name_y="y", name_z="z"):
     """
