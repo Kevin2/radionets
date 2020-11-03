@@ -11,7 +11,7 @@ import dl_framework.architectures as architecture
 from dl_framework.model import load_pre_model, build_matcher, sort
 from simulations.utils import adjust_outpath
 from pathlib import Path
-from gaussian_sources.inspection import visualize_with_fourier
+#from gaussian_sources.inspection import visualize_with_fourier
 
 
 # make nice Latex friendly plots

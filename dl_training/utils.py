@@ -42,8 +42,10 @@ def read_config(config):
 
     train_conf["transformed_imgs"] = config["general"]["transformed_imgs"]
 
-    train_conf["max_lr"] = config["lr_find"]["max_lr"]
-    train_conf["min_lr"] = config["lr_find"]["min_lr"]
+    train_conf["param_scheduling"] = config["param_scheduling"]["use"]
+    train_conf["lr_start"] = config["param_scheduling"]["lr_start"]
+    train_conf["lr_max"] = config["param_scheduling"]["lr_max"]
+    train_conf["lr_stop"] = config["param_scheduling"]["lr_stop"]
 
     return train_conf
 

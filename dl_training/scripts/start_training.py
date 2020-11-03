@@ -170,6 +170,7 @@ def main(configuration_path, mode):
         create_inspection_lists(learn, train_conf, mode, num_tests=num_tests)
 
     print(learn.model)
+    print('-----------------------------------------------------------------')
 
 if __name__ == "__main__":
     main()

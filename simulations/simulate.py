@@ -35,6 +35,7 @@ def create_fft_images(sim_conf):
                 num_pointsources=sim_conf["num_pointsources"],
                 noise=sim_conf["noise"],
 	        source_list=sim_conf["source_list"],
+                seg_map=sim_conf["seg_map"],
             )
 
 
@@ -54,7 +55,8 @@ def sample_fft_images(sim_conf):
         steps=sim_conf["steps"],
         fourier=sim_conf["fourier"],
         compressed=sim_conf["compressed"],
-        source_list=sim_conf["source_list"]
+        source_list=sim_conf["source_list"],
+        seg_map=sim_conf["seg_map"],
     )
     if sim_conf["keep_fft_files"] is not True:
         if click.confirm("Do you really want to delete the fft_files?", abort=False):
