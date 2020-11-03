@@ -1,0 +1,31 @@
+# This is a TOML document.
+
+title = "Train configuration"
+
+[mode]
+batch_mode = false
+telegram_logger = false
+
+[paths]
+data_path = "./build/"
+model_path = "./build/test_model/test.model"
+pre_model = "none"
+norm_path = "none"
+
+[general]
+fourier = true
+arch_name = "filter_deep"
+loss_func = "mse"
+num_epochs = 2
+inspection = false
+source_list = false
+
+[hypers]
+batch_size = 64
+lr = 1e-3
+
+[param_scheduling]
+use = true
+lr_start = 1e-3
+lr_max = 5e-3
+lr_stop = 7e-4

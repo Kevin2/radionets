@@ -1,0 +1,26 @@
+# This is a TOML document.
+
+title = "Train configuration"
+
+[mode]
+batch_mode = true
+gpu = true
+
+[paths]
+data_path = "./example_data/"
+model_path = "./build/example_model/example.model"
+norm_path = "none"
+
+[general]
+fourier = true
+amp_phase = true
+source_list = false
+arch_name = "filter_deep"
+
+[inspection]
+visualize_prediction = false
+visualize_source_reconstruction = false
+num_images = 5
+
+[eval]
+evaluate_viewing_angle = true

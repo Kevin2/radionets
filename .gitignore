@@ -6,16 +6,12 @@
 */data*
 *.uvf
 *.h5
-
-#test data
-*/test_data
-test_data
-simulations/data/
+radionets/simulations/test_data
+examples/example_data/
 
 #evaluation results
 */results
 results/
-simulations/test_data/
 
 # cache
 __pycache__/
@@ -36,20 +32,15 @@ __pycache__/
 # make
 *_done
 */build
-build/
 
-# old stuff
-mnist_cnn/old
 
 *.pyc
 *.vscode
-
 *.eggs
 *.egg-info
-
-/mnist_cnn/visualize/test_data
-
 .flake8
-*.yaml
 .makerc
 .coverage
+dist/
+radionets/dl_framework/values.yaml
+*.csv
