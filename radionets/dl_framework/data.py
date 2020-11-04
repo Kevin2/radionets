@@ -4,7 +4,7 @@ import h5py
 import re
 import numpy as np
 from pathlib import Path
-from dl_framework.model import fft_, euler_
+from radionets.dl_framework.model import fft_, euler_
 
 
 def normalize(x, m, s):
