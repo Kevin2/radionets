@@ -525,11 +525,8 @@ def pos_loss(x, y):
     out = torch.stack(ordered)
 
     loss = nn.MSELoss()
-    loss = loss(out, tar)
-    #    loss = loss.reshape(-1)
-    #    for j in range(len(loss)):
-    #        if abs(loss[j])<0.25:
-    #            loss[j] = 0
+    loss = loss(out,tar)
+
     return loss
 
 
@@ -562,7 +559,6 @@ def spe_square(x, y):
     k = sum(loss)
     loss = k / len(x)
     return loss
-
 
 def spe_(x, y):
     loss = []

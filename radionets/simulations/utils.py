@@ -128,6 +128,7 @@ def read_config(config):
         click.echo("Create fft_images from gaussian data set! \n")
 
         sim_conf["source_list"] = config["gaussians"]["source_list"]
+        sim_conf["seg_map"] = config["gaussians"]["seg_map"]
         sim_conf["type"] = "gaussians"
         if config["gaussians"]["pointsources"]:
             sim_conf["num_pointsources"] = config["gaussians"]["num_pointsources"]

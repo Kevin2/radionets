@@ -25,6 +25,7 @@ def sample_frequencies(
     lat=None,
     steps=None,
     source_list=False,
+    seg_map=False,
 ):
     for mode in ["train", "valid", "test"]:
         print(f"\n Sampling {mode} data set.\n")
@@ -32,7 +33,7 @@ def sample_frequencies(
         bundle_paths = get_fft_bundle_paths(data_path, "fft", mode)
 
         for path in tqdm(bundle_paths):
-            if source_list:
+            if source_list^seg_map:
                 fft, truth = open_fft_bundle(path)
             else:
                 fft, truth = open_fft_pair(path)

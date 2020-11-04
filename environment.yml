@@ -8,7 +8,11 @@ dependencies:
   - python>=3.6
   - pytorch>=1.6
   - torchvision
+<<<<<<< HEAD
+  - cudatoolkit=10.1
+=======
   - cudatoolkit=9.2
+>>>>>>> bbf536b681bfa2fa0576f9361c9fc2e5173dae22
   - cartopy
   - pip
   - pip:
