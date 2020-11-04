@@ -571,3 +571,9 @@ def spe_(x, y):
     k = sum(loss)
     loss = k / len(x)
     return loss
+
+def seg_loss(x, y):
+    y = y.reshape(-1)
+    loss = nn.BCELoss()
+
+    return loss(x, y)

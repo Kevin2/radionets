@@ -104,7 +104,10 @@ def main(configuration_path, mode):
 
         if train_conf["inspection"]:
             num_tests = train_conf["num_tests"]
-            create_inspection_lists(learn, train_conf, mode, num_tests)
+            if train_conf["truth"] is "list":
+                create_inspection_lists(learn, train_conf, mode, num_tests)
+            elif train_conf["truth"] is "segmentation":
+                create_inspection_plots(learn, train_conf)
 
     if mode == "lr_find":
         click.echo("Start lr_find.\n")
@@ -167,7 +170,10 @@ def main(configuration_path, mode):
             sys.exit()
 
         num_tests = train_conf["num_tests"]
-        create_inspection_lists(learn, train_conf, mode, num_tests=num_tests)
+        if train_conf["truth"] is "list":
+            create_inspection_lists(learn, train_conf, mode, num_tests=num_tests)
+        elif train_conf["truth"] is "segmentation":
+            create_inspection_plots(learn, train_conf)
 
     print(learn.model)
     print('-----------------------------------------------------------------')
