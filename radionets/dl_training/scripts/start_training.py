@@ -18,7 +18,8 @@ from radionets.dl_framework.inspection import (
     create_inspection_plots,
     create_inspection_lists,
 )
-from radionets.evaluation.train_inspection import create_inspection_plots
+
+# from radionets.evaluation.train_inspection import create_inspection_plots
 from pathlib import Path
 
 
@@ -92,6 +93,7 @@ def main(configuration_path, mode):
 
         # load pretrained model
         if train_conf["pre_model"] != "none":
+            learn.create_opt()
             load_pre_model(learn, train_conf["pre_model"])
 
         # Train the model, except interrupt
@@ -163,6 +165,7 @@ def main(configuration_path, mode):
             train_conf,
         )
         if train_conf["pre_model"] != "none":
+            learn.create_opt()
             load_pre_model(learn, train_conf["pre_model"])
         else:
             click.echo("No pretrained model was selected.")
@@ -176,7 +179,7 @@ def main(configuration_path, mode):
             create_inspection_plots(learn, train_conf)
 
     print(learn.model)
-    print('-----------------------------------------------------------------')
+    print("-----------------------------------------------------------------")
 
 
 if __name__ == "__main__":
