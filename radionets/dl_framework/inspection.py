@@ -10,7 +10,7 @@ from radionets.dl_framework.data import do_normalisation, load_data
 import radionets.dl_framework.architectures as architecture
 from radionets.simulations.utils import adjust_outpath
 from pathlib import Path
-#from gaussian_sources.inspection import visualize_with_fourier
+from radionets.evaluation.plotting import visualize_with_fourier
 
 
 # make nice Latex friendly plots
