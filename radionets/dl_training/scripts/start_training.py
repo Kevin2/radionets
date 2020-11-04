@@ -18,7 +18,8 @@ from radionets.dl_framework.inspection import (
     create_inspection_plots,
     create_inspection_lists,
 )
-from radionets.evaluation.train_inspection import create_inspection_plots
+
+# from radionets.evaluation.train_inspection import create_inspection_plots
 from pathlib import Path
 
 
