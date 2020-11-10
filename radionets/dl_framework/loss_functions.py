@@ -513,7 +513,7 @@ def pos_loss(x, y):
     Permutation Loss for Source-positions list. With hungarian method
     to solve assignment problem.
     """
-    out = x.reshape(-1, 5, 2)
+    out = x.reshape(-1, y.shape[1], 2)
     tar = y[:, :, :2]
 
     matcher = build_matcher()
@@ -573,7 +573,7 @@ def spe_(x, y):
     return loss
 
 def seg_loss(x, y):
-    y = y.reshape(-1)
+    y = y.reshape(-1, y.shape[-1]**2)
     loss = nn.BCELoss()
 
     return loss(x, y)

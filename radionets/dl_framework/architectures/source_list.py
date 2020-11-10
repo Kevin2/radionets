@@ -28,7 +28,7 @@ def list_pos_():
         nn.Linear(4700, 470),
         nn.ReLU(),
         nn.Dropout(p=0.3),
-        nn.Linear(470, 5 * 2),
+        nn.Linear(470, 7 * 2),
         Lambda(clamp),
         # Lambda(round_),
     )

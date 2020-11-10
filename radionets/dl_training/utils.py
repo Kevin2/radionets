@@ -8,13 +8,13 @@ from radionets.dl_framework.model import save_model
 from radionets.dl_framework.inspection import create_inspection_plots
 
 
-def create_databunch(data_path, fourier, batch_size, transformed_imgs):
+def create_databunch(data_path, fourier, batch_size, transformed_imgs, source_list):
     # Load data sets
     train_ds = load_data(
-        data_path, "train", fourier=fourier, transformed_imgs=transformed_imgs
+        data_path, "train", fourier=fourier, transformed_imgs=transformed_imgs, source_list=source_list
     )
     valid_ds = load_data(
-        data_path, "valid", fourier=fourier, transformed_imgs=transformed_imgs
+        data_path, "valid", fourier=fourier, transformed_imgs=transformed_imgs, source_list = source_list
     )
 
     # Create databunch with defined batchsize
@@ -31,7 +31,6 @@ def read_config(config):
     train_conf["norm_path"] = config["paths"]["norm_path"]
 
     train_conf["num_tests"] = config["evaluation"]["num_tests"]
-    train_conf["truth"] = config["evaluation"]["truth"]
 
     train_conf["batch_mode"] = config["mode"]["batch_mode"]
     train_conf["gpu"] = config["mode"]["gpu"]
@@ -41,12 +40,11 @@ def read_config(config):
     train_conf["lr"] = config["hypers"]["lr"]
 
     train_conf["fourier"] = config["general"]["fourier"]
-    train_conf["amp_phase"] = config["general"]["amp_phase"]
     train_conf["arch_name"] = config["general"]["arch_name"]
     train_conf["loss_func"] = config["general"]["loss_func"]
     train_conf["num_epochs"] = config["general"]["num_epochs"]
     train_conf["inspection"] = config["general"]["inspection"]
-
+    train_conf["source_list"] = config["general"]["source_list"]
     train_conf["transformed_imgs"] = config["general"]["transformed_imgs"]
 
     train_conf["param_scheduling"] = config["param_scheduling"]["use"]

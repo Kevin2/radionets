@@ -1,16 +1,16 @@
 import click
 from tqdm import tqdm
 import torch
-from simulations.utils import get_fft_bundle_paths
-from dl_framework.data import open_fft_pair
+from radionets.simulations.utils import get_fft_bundle_paths
+from radionets.dl_framework.data import open_fft_pair
 
 @click.command()
-def main():
+@click.argument("data_path", type=click.Path(exists=True, dir_okay=True))
+def main(data_path):
     """
     Inspect dirty Images (tra_) for null amplitudes. Output: Number of images
     with null amplitude.
     """
-    data_path = './data_ex'
     err = []
 
     for mode in ['train','valid', 'test']:

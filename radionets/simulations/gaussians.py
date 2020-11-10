@@ -372,7 +372,7 @@ def gaussian_source(grid, comps):
     r = np.zeros((img_len, img_len))
     for i in range(comps):
         r[X[i], Y[i]] = 1
-    return s, a, r
+    return s, a, r.T
 
 
 def create_ext_gauss_bundle(grid, N, source_list, segmap):
@@ -412,56 +412,6 @@ def create_ext_gauss_bundle(grid, N, source_list, segmap):
 
 # pointlike gaussians
 
-
-def pointlike_params(img_size, comps):
-    amp_start = (np.random.randint(0, 100) * np.random.random()) / 10
-    while amp_start == 0:
-        amp_start = (np.random.randint(0, 100) * np.random.random()) / 10
-    amp = np.array([amp_start for i in range(comps)])
-
-    x = np.random.randint(1, img_size, size=comps)
-    y = np.random.randint(1, img_size, size=comps)
-
-    s = np.random.randint(1, 15, size=comps) / 10
-    return amp, x, y, s
-
-
-def gauss_comps(grid, sources_int, segmap, source_list):
-    img_size = grid.shape[-1]
-    N = grid.shape[0]
-
-    sources = np.random.randint(sources_int[0], sources_int[1]+1, size=N)
-    parameters = [pointlike_params(img_size, sources[v]) for v in range(N)]
-    amp, x, y, s = zip(*parameters)
-
-    seg = np.zeros((N, img_size, img_size))
-    for i in range(N):
-        seg[i, x[i], y[i]] = 1
-    gaussians = np.array(
-        [
-            create_gaussian_source(
-                grid[v], sources[v], amp[v], x[v], y[v], s[v], s[v], 0, 0, False
-            )
-            for v in range(N)
-        ]
-    )
-
-    list_source = np.zeros((N, sources_int[1], 5))
-    for i in range(N):
-        for j in range(len(x[i])):
-            list_source[i, j, 0] = x[i][j]
-            list_source[i, j, 1] = y[i][j]
-            list_source[i, j, 2:4] = s[i][j]
-            list_source[i, j, 4] = amp[i][j]
- 
-    if source_list and not segmap:
-        return gaussians, list_source
-    if segmap and not source_list:
-        return gaussians, seg
-    else:
-        return gaussians
-
-
 def create_gauss(grid, sources, spherical, source_list, segmap):
     # img = [img]
     img = grid[:, 0]
@@ -471,29 +421,31 @@ def create_gauss(grid, sources, spherical, source_list, segmap):
     if isinstance(sources, list):
         u = sources[0]
         sources = sources[1]
+        likelihood = True
     else:
         u = sources
+        likelihood = False
 
     mx = np.random.randint(1, img_size, size=(N, sources))
     my = np.random.randint(1, img_size, size=(N, sources))
     amp = (np.random.randint(1, 100, size=(N)) *1/10* np.random.randint(5, 10)) / 1e2
 
     if spherical:
-        sx = np.random.randint(3, 8, size=(N, sources))
+        sx = np.random.randint(1, 15, size=(N, sources))/10
         sy = sx
     else:
         sx = np.random.randint(1, 15, size=(N, sources))
         sy = np.random.randint(1, 15, size=(N, sources))
         theta = np.random.randint(0, 360, size=(N, sources))
 
-    s = np.zeros((N,sources,5))
+    s = np.zeros((N, sources, 6))
     r = np.zeros((N, img_size, img_size))
     for i in range(N):
         targets = np.random.randint(u, sources+1)
         for j in range(targets):
             g = gauss(mx[i, j], my[i, j], sx[i, j], sy[i, j], amp[i])
-            s[i, j] = np.array([mx[i, j], my[i, j], sx[i, j], sy[i, j], amp[i]])
-            r[i, mx[i, j], my[i, j]] = 1
+            s[i, j] = np.array([mx[i, j], my[i, j], sx[i, j], sy[i, j], amp[i], 1])
+            r[i, my[i, j], mx[i, j]] = 1
             if spherical:
                 img[i] += g
             else:
@@ -505,7 +457,9 @@ def create_gauss(grid, sources, spherical, source_list, segmap):
                 imgC = imgR[padY[0] : -padY[1], padX[0] : -padX[1]]
                 img[i] += imgC
 
-    if source_list and not segmap:
+    if not likelihood:
+        s = s[:, :, :5]
+    if source_list and not segmap:    
         return img, s
     elif segmap and not source_list:
         return img, r
@@ -540,7 +494,7 @@ def gauss_pointsources(grid, sources, source_list, segmap):
             g = gauss(mx[i, j], my[i, j], sigma, sigma, amp[i])
             img[i] += g
             s[i,j] = np.array([mx[i,j],my[i,j],sigma,sigma,amp[i]])
-            r[i, mx[i, j], my[i, j]] = 1
+            r[i, my[i, j], mx[i, j]] = 1
 
     if source_list and not segmap:
         return np.array(img), s

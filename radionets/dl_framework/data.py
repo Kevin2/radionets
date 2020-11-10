@@ -49,7 +49,7 @@ class Dataset:
 
 
 class h5_dataset:
-    def __init__(self, bundle_paths, tar_fourier, transformed_imgs, amp_phase=None):
+    def __init__(self, bundle_paths, tar_fourier, transformed_imgs, source_list, amp_phase=None):
         """
         Save the bundle paths and the number of bundles in one file.
         """
@@ -57,6 +57,7 @@ class h5_dataset:
         self.num_img = len(self.open_bundle(self.bundles[0], "x"))
         self.tar_fourier = tar_fourier
         self.transformed_imgs = transformed_imgs
+        self.source_list = source_list
         self.amp_phase = amp_phase
 
     def __call__(self):
@@ -120,24 +121,29 @@ class h5_dataset:
                 data_amp, data_phase = data[:, 0].unsqueeze(1), data[:, 1].unsqueeze(1)
 
                 data_channel = torch.cat([data_amp, data_phase], dim=1)
+
         elif var == "x" and self.transformed_imgs == True:
             if data.shape[1] == 2:
                 raise ValueError(
-                    "Two channeled data is used despite Fourier being False. Set Fourier to True!"
+                    "Two channeled data is used despite transformed_imgs being True. Set transformed_imgs to False!"
                 )
             if len(i) == 1:
                 data_channel = data.reshape(data.shape[-1], data.shape[-1])
             else:
                 data_channel = data.reshape(-1, data.shape[-1], data.shape[-1])
-        elif var == "y":
-            if data.shape[1] == 2:
-                raise ValueError("Size Error")
+
+        elif var == "y" and self.source_list == True:
             if len(i) == 1:
-                data_channel = data.reshape(
-                    -1, 5
-                )  # 1. index number of sourcesthere is always 5 params.
+                data_channel = data.reshape(-1, 5)
             else:
-                data_channel = data.reshape(len(i), -1, 5)  # 2.index #sources
+                data_channel = data.reshape(len(i), -1, 5)
+
+        elif var == "y" and self.source_list == False:
+            if len(i) == 1:
+                data_channel = data.reshape(data.shape[-1], data.shape[-1])
+            else:
+                data_channel = data.reshape(len(i), data.shape[-1], data.shape[-1])
+
         else:
             if data.shape[1] == 2:
                 raise ValueError(
@@ -290,7 +296,7 @@ def mean_and_std(array):
     return array.mean(), array.std()
 
 
-def load_data(data_path, mode, fourier=False, transformed_imgs=False):
+def load_data(data_path, mode, fourier=False, transformed_imgs=False, source_list=True):
     """
     Load data set from a directory and return it as h5_dataset.
 
@@ -316,5 +322,5 @@ def load_data(data_path, mode, fourier=False, transformed_imgs=False):
     else:
         prefix = "samp_"
     data = [path for path in bundle_paths if re.findall(prefix + mode, path.name)]
-    ds = h5_dataset(data, tar_fourier=fourier, transformed_imgs=transformed_imgs)
+    ds = h5_dataset(data, tar_fourier=fourier, transformed_imgs=transformed_imgs, source_list=source_list)
     return ds

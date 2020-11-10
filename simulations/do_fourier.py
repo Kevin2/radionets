@@ -1,12 +1,12 @@
 import sys
 from tqdm import tqdm
 import click
-from dl_framework.data import fourier_trafo, save_fft_pair
-from simulations.utils import check_samp, get_samp_files
+from radionets.dl_framework.data import fourier_trafo, save_fft_pair
+from radionets.simulations.utils import check_samp, get_samp_files
 
 @click.command()
-#@click.argument("data_path", type=click.Path(exists=True, dir_okay=False))
-def main():
+@click.argument("data_path", type=click.Path(exists=True, dir_okay=True))
+def main(data_path):
     """
     Do an inverse Fourier Transformation to retrieve 'dirty' images from
     sampled data and save them to new bundles 'tra_' with unchanged truth
@@ -14,7 +14,7 @@ def main():
 
     """
 
-    data_path = "./data_ex"
+#    data_path = "./analysis/data_seg"
     print("Data Path: ", data_path)
 
     samp_files = check_samp(data_path)

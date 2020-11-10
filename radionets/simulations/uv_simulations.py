@@ -385,8 +385,7 @@ def sample_freqs(
     if test:
         mask = test_mask()
     else:
-        layout = getattr(layouts, ant_config)
-        ant = antenna(*layout())
+        ant = antenna(*get_antenna_config(ant_config))
         if specific_mask is True:
             s = source(lon, lat)
             s.propagate(num_steps=num_steps, multi_pointing=False)
@@ -416,3 +415,23 @@ def sample_freqs(
         return img, mask
     else:
         return img
+
+
+def get_antenna_config(config_path):
+    """
+    Loads antenna config file and returns antenna positions
+
+    Parameters
+    ----------
+    config_path: str
+        path to antenna config file
+
+    Returns
+    -------
+    ant_pos: ndarray
+        array containing x, y, z positions
+    """
+    config = config_path
+    x, y, z, _, _ = np.genfromtxt(config, unpack=True)
+    ant_pos = np.array([x, y, z])
+    return ant_pos

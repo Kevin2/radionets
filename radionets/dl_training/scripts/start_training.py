@@ -63,15 +63,16 @@ def main(configuration_path, mode):
         fourier=train_conf["fourier"],
         batch_size=train_conf["bs"],
         transformed_imgs=train_conf["transformed_imgs"],
+        source_list=train_conf["source_list"],
     )
 
     # get image size
 
     transformed_imgs = train_conf["transformed_imgs"]
     if transformed_imgs:
-        train_conf["image_size"] = data.train_ds[0][0].shape[1]
+        train_conf["image_size"] = data.train_ds[0][0].shape[-1]
     else:
-        train_conf["image_size"] = data.train_ds[0][0][0].shape[1]
+        train_conf["image_size"] = data.train_ds[0][0][0].shape[-1]
 
     # define architecture
     arch = define_arch(
@@ -106,10 +107,12 @@ def main(configuration_path, mode):
 
         if train_conf["inspection"]:
             num_tests = train_conf["num_tests"]
-            if train_conf["truth"] is "list":
-                create_inspection_lists(learn, train_conf, mode, num_tests)
-            elif train_conf["truth"] is "segmentation":
-                create_inspection_plots(learn, train_conf)
+
+            if train_conf["source_list"]==True:
+                create_inspection_lists(learn, train_conf, mode)
+
+            else:
+                create_inspection_plots(learn, train_conf, mode)
 
     if mode == "lr_find":
         click.echo("Start lr_find.\n")
@@ -119,14 +122,13 @@ def main(configuration_path, mode):
             data,
             arch,
             train_conf,
-            lr_find=True,
         )
 
         # load pretrained model
         if train_conf["pre_model"] != "none":
             load_pre_model(learn, train_conf["pre_model"], lr_find=True)
 
-        learn.fit(2)
+        learn.lr_find()
 
         # save loss plot
         plot_lr_loss(
@@ -147,14 +149,16 @@ def main(configuration_path, mode):
         )
         # load pretrained model
         if train_conf["pre_model"] != "none":
+            learn.create_opt()
             load_pre_model(learn, train_conf["pre_model"])
         else:
             click.echo("No pretrained model was selected.")
             click.echo("Exiting.\n")
             sys.exit()
 
-        plot_lr(learn, Path(train_conf["model_path"]))
-        plot_loss(learn, Path(train_conf["model_path"]), log=True)
+        if train_conf["param_scheduling"]:
+            plot_lr(learn, Path(train_conf["pre_model"]))
+        plot_loss(learn, Path(train_conf["pre_model"]), log=True)
 
     if mode == "evaluate":
         click.echo("Start evaluation of a pretrained model.\n")
@@ -173,13 +177,14 @@ def main(configuration_path, mode):
             sys.exit()
 
         num_tests = train_conf["num_tests"]
-        if train_conf["truth"] is "list":
-            create_inspection_lists(learn, train_conf, mode, num_tests=num_tests)
-        elif train_conf["truth"] is "segmentation":
-            create_inspection_plots(learn, train_conf)
 
-    print(learn.model)
-    print("-----------------------------------------------------------------")
+        if train_conf["source_list"]==True:
+            create_inspection_lists(learn, train_conf, mode)
+        else:
+            create_inspection_plots(learn, train_conf, mode)
+    if train_conf["source_list"]:
+        print(learn.model)
+        print("-----------------------------------------------------------------")
 
 
 if __name__ == "__main__":

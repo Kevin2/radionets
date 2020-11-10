@@ -20,7 +20,7 @@ class Lambda(nn.Module):
 
 class HungarianMatcher(nn.Module):
     """
-    Balanced assignment Problem (outputs.shape[1]=targets.shape[1])
+    Solve assignment Problem.
     """
 
     def __init__(self):
@@ -28,12 +28,17 @@ class HungarianMatcher(nn.Module):
 
     @torch.no_grad()
     def forward(self, outputs, targets):
-        bs, _, coords = outputs.shape
 
-        assert coords is targets.shape[2]
+        assert outputs.shape[-1] is targets.shape[-1]
 
-        C = torch.cdist(targets, outputs, p=1)
+        C = torch.cdist(targets.to(torch.float64), outputs.to(torch.float64), p=1)
         C = C.cpu()
+
+        if len(outputs.shape)==3:
+            bs = outputs.shape[0]
+        else:
+            bs = 1
+            C = C.unsqueeze(0)
 
         indices = [linear_sum_assignment(C[b]) for b in range(bs)]
         return [(torch.as_tensor(j), torch.as_tensor(i)) for i, j in indices]
@@ -69,7 +74,7 @@ def permutation(x, y, out_loss=False):
     d = nn.MSELoss(reduction="mean")
     cost = torch.empty((x.shape[0], y.shape[0]))
     for i in range(len(cost)):
-        for j in range(len(cost)):
+        for j in range(cost.shape[1]):
             cost[i, j] = d(x[i], y[j])
     row, col = linear_sum_assignment(cost)
     perm = np.zeros(col.shape)
