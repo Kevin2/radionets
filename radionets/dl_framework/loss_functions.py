@@ -524,7 +524,8 @@ def pos_loss(x, y):
     tar = y[:, 0, :, :2] / 63
 
     matcher = build_matcher()
-    matches = matcher(out[:, :, 0].unsqueeze(-1), tar[:, :, 0].unsqueeze(-1))
+    matches = matcher(out, tar)
+    # give x and y coords
 
     out_ord, _ = zip(*matches)
 
