@@ -411,6 +411,23 @@ def spe(x, y):
     loss = k/len(x)
     return loss
 
+# sort after fitting x pos (dependent on y or not)
+def sort_param(a,b):
+    x_pred = [a[2* i] for i in range(len(a.split(2)))]
+    y_pred = [a[2* i +1] for i in range(len(a.split(2)))]
+    x_truth = [b[2* i] for i in range(len(b.split(2)))]
+    y_truth = [b[2* i +1] for i in range(len(b.split(2)))] 
+    h = []
+    matcher = build_matcher()
+    x = matcher(torch.tensor((x_pred)).unsqueeze(1), torch.tensor((x_truth)).unsqueeze(1))[0][0]
+    y = matcher(torch.tensor((y_pred)).unsqueeze(1), torch.tensor((y_truth)).unsqueeze(1))[0][0]
+    for k in range(len(x)):
+        h.append(x_pred[x[k]])
+        #h.append(y_pred[x[k]]) # if just x is considered (x and y are dependent)       
+        h.append(y_pred[y[k]]) # if x and y are independent
+    return torch.tensor((h))
+
+# Sort after distance between vektor
 def sort_vektor(a,b, param):
     xy = a.split(param)
     xy_pred = [vektor_abs(xy[i]) for i in range(len(xy))]
