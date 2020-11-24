@@ -85,13 +85,30 @@ class Learner:
             self.cbs.remove(cb)
 
     def one_batch(self, i, xb, yb):
+        #print(xb.shape, yb.shape)
+        yb = yb.squeeze()
+        a = yb
+        for k in range(len(a)):
+           for i in range(len(a[0])):
+               if i == 0:
+                   c = a[k][0].detach().clone()
+               else:
+                   c = torch.cat((c, a[0][i]))
+           h = c.unsqueeze(0)
+           if k == 0:
+               yb = h
+           else:
+               yb = torch.cat((yb, h))
+        #print(yb.shape)
         try:
             self.iter = i
             self.xb, self.yb = xb, yb
             self("begin_batch")
             self.pred = self.model(self.xb)
             self("after_pred")
+            #print('over here')
             self.loss = self.loss_func(self.pred, self.yb)
+            #print(self.pred.shape, self.yb.shape)
             self("after_loss")
             if not self.in_train:
                 return

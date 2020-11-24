@@ -423,12 +423,13 @@ def create_gauss(img, N, sources, spherical, source_list):
         sy = np.random.randint(1, 15, size=(N, sources))
         theta = np.random.randint(0, 360, size=(N, sources))
     
-    s = np.zeros((N,sources,1)) # changed from 5
+    s = np.zeros((N,sources,2)) # changed from 5
     for i in range(N):
         for j in range(sources):
             g = gauss(mx[i, j], my[i, j], sx[i, j], sy[i, j], amp[i])
             #s[i,j] = np.array([mx[i,j],my[i,j],sx[i,j],sy[i,j],amp[i]])
-            s[i,j] = np.array([mx[i,j]])
+            #s[i,j] = np.array([sx[i,j],sy[i,j],amp[i]])
+            s[i,j] = np.array([mx[i,j], my[i,j]])
             if spherical:
                 img[i] += g
             else:

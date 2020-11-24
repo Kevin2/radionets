@@ -5,6 +5,7 @@ from torchvision.models import vgg16_bn
 from dl_framework.utils import children
 import torch.nn.functional as F
 import pytorch_msssim
+from scipy.optimize import linear_sum_assignment
 
 
 class FeatureLoss(nn.Module):
@@ -345,14 +346,27 @@ def loss_mse_msssim(x, y):
 
     return loss_amp + loss_phase
 
-def spe(x,y):
-    y = y.squeeze()
-    x = x.squeeze()
-    #y = y[:, 0:2]
+def spe_(x,y):
+    #print(x.shape)
+    #y = y.squeeze()
+    #a = y
+    #for k in range(len(a)):
+    #    for i in range(len(a[0])):
+    #        if i == 0:
+    #            c = a[k][0].detach().clone()
+    #        else:
+    #            c = torch.cat((c, a[0][i]))
+    #    h = c.unsqueeze(0)
+    #    if k == 0:
+    #        y = h
+    #    else:
+    #        y = torch.cat((y, h))
+    #print(y.shape)
     loss = []
     value = 0
     for i in range(len(x)):
-        value += torch.abs(x[i] - y[i])
+        for k in range(len(x[0])):
+            value += torch.abs(x[i][k] - y[i][k])
         loss.append(value)
         value = 0
     loss = sum(loss)/len(x)
@@ -374,7 +388,18 @@ def spe_square(x,y):
     loss = k/len(x)
     return loss
 
-def spe_(x, y):
+def spe(x, y):
+    #print(x.shape, y.shape)
+    y = y.squeeze()
+    y = y/62
+
+    #print(y[0])
+
+    #for i in range(len(x)):
+        #y[i] = sort_vektor(x[i], y[i], 2)
+    
+    #print(y[0])
+
     loss = []
     value = 0
     for i in range(len(x)):
@@ -385,3 +410,50 @@ def spe_(x, y):
     k = sum(loss)
     loss = k/len(x)
     return loss
+
+def sort_vektor(a,b, param):
+    xy = a.split(param)
+    xy_pred = [vektor_abs(xy[i]) for i in range(len(xy))]
+    xy = b.split(param)
+    xy_truth = [vektor_abs(xy[i]) for i in range(len(xy))]
+    h = []
+    matcher = build_matcher()
+    indice = matcher(torch.tensor((xy_pred)).unsqueeze(1), torch.tensor((xy_truth)).unsqueeze(1))[0][0]
+    for k in range(len(indice)):
+        h.append(b[indice[k]*2])
+        h.append(b[indice[k]*2 +1])
+    return torch.tensor((h))
+
+def vektor_abs(a):
+    return (a[0]**2 + a[1]**2)**(1/2)
+
+
+
+class HungarianMatcher(nn.Module):
+    """
+    Solve assignment Problem.
+    """
+
+    def init(self):
+        super().init()
+
+    @torch.no_grad()
+    def forward(self, outputs, targets):
+
+        assert outputs.shape[-1] is targets.shape[-1]
+
+        C = torch.cdist(targets.to(torch.float64), outputs.to(torch.float64), p=1)
+        C = C.cpu()
+
+        if len(outputs.shape) == 3:
+            bs = outputs.shape[0]
+        else:
+            bs = 1
+            C = C.unsqueeze(0)
+
+        indices = [linear_sum_assignment(C[b]) for b in range(bs)]
+        return [(torch.as_tensor(j), torch.as_tensor(i)) for i, j in indices]
+
+def build_matcher():
+    return HungarianMatcher()
+
