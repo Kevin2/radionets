@@ -432,17 +432,69 @@ def loss_mse_msssim(x, y):
 
 
 def spe(x, y):
+    # print(x.shape, y.shape)
     y = y.squeeze()
-    x = x.squeeze()
-    # y = y[:, 0:2]
+    y = y / 62
+
+    # print(y[0])
+
+    # for i in range(len(x)):
+    # y[i] = sort_vektor(x[i], y[i], 2)
+
+    # print(y[0])
+
     loss = []
     value = 0
     for i in range(len(x)):
-        value += torch.abs(x[i] - y[i])
-        loss.append(value)
+        for k in range(len(x[0])):
+            value += torch.abs(x[i][k] - y[i][k])
+        loss.append(value / len(x[0]))
         value = 0
-    loss = sum(loss) / len(x)
+    k = sum(loss)
+    loss = k / len(x)
     return loss
+
+
+# sort after fitting x pos (dependent on y or not)
+def sort_param(a, b):
+    x_pred = [a[2 * i] for i in range(len(a.split(2)))]
+    y_pred = [a[2 * i + 1] for i in range(len(a.split(2)))]
+    x_truth = [b[2 * i] for i in range(len(b.split(2)))]
+    y_truth = [b[2 * i + 1] for i in range(len(b.split(2)))]
+    h = []
+    matcher = build_matcher()
+    x = matcher(
+        torch.tensor((x_pred)).unsqueeze(1), torch.tensor((x_truth)).unsqueeze(1)
+    )[0][0]
+    y = matcher(
+        torch.tensor((y_pred)).unsqueeze(1), torch.tensor((y_truth)).unsqueeze(1)
+    )[0][0]
+    for k in range(len(x)):
+        h.append(x_pred[x[k]])
+        # h.append(y_pred[x[k]]) # if just x is considered (x and y are dependent)
+        h.append(y_pred[y[k]])  # if x and y are independent
+    return torch.tensor((h))
+
+
+# Sort after distance between vektor
+def sort_vektor(a, b, param):
+    xy = a.split(param)
+    xy_pred = [vektor_abs(xy[i]) for i in range(len(xy))]
+    xy = b.split(param)
+    xy_truth = [vektor_abs(xy[i]) for i in range(len(xy))]
+    h = []
+    matcher = build_matcher()
+    indice = matcher(
+        torch.tensor((xy_pred)).unsqueeze(1), torch.tensor((xy_truth)).unsqueeze(1)
+    )[0][0]
+    for k in range(len(indice)):
+        h.append(b[indice[k] * 2])
+        h.append(b[indice[k] * 2 + 1])
+    return torch.tensor((h))
+
+
+def vektor_abs(a):
+    return (a[0] ** 2 + a[1] ** 2) ** (1 / 2)
 
 
 def spe_square(x, y):
