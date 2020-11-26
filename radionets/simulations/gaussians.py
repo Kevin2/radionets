@@ -398,11 +398,12 @@ def gauss_pointsources(img, N, sources, source_list):
     my = np.random.randint(0, 63, size=(N, sources))
     amp = np.random.randint(1, 10, size=(N))
     sigma = 0.005
-    s = np.zeros((N, sources, 3))  # changed from 5
+    s = np.zeros((N, sources, 2))  # changed from 5
+    print(s.shape)
     for i in range(N):
         for j in range(sources):
             g = gauss(mx[i, j], my[i, j], sigma, sigma, amp[i])
-            s[i, j] = np.array([mx[i, j], my[i, j], amp[i]])
+            s[i, j] = np.array([mx[i, j], my[i, j]])
             img[i] += g
     print(s.shape)
     if source_list:
