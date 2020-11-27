@@ -393,7 +393,13 @@ def create_inspection_plots(learn, train_conf, mode):
 
         amp_loss = torch.nn.L1Loss()
         amp_loss = amp_loss(amp_pred, amp_true)
-        print("Mean L1 Loss for the amplitude prediction: ", amp_loss.item())
+        rel_var = abs(amp_pred-amp_true)/amp_true
+        rel_var = rel_var.mean().item()
+        print("Amplitude Prediction: ")
+        print("----------------------")
+        print("Mean L1 Loss: ", amp_loss.item())
+        print("Mean Relative Error: {:.2f}%".format(rel_var*1e2))
+        print("----------------------")
 
     model_path = train_conf["model_path"]
     out_path = Path(model_path).parent

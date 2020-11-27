@@ -604,28 +604,27 @@ def segamp_loss(x, y):
     x[0] = segmap, .shape=(bs, 64, 64)
     x[1] = amp_pred, .shape=(bs, 1)
     """
-    t_amp = extract_amp(y.cuda())
-    t_amp = t_amp.reshape(-1, 1).cuda()
+    y = extract_amp(y)
+    y = y.reshape(-1, 1)
 
     x = x[1]
-    p_amp = x.reshape(-1, 1)
+    x = x.reshape(-1, 1)
 
     loss = nn.L1Loss()
-    return loss(p_amp, t_amp)
+    return loss(x, y.cuda())
 
 def seg_amp_loss(x, y):
     """
     x.shape = (bs, 2, 64**2)
     y.shape(bs, 64, 64)
     """
+    p_amp = x[1].reshape(-1, 1)
+    p_seg = x[0]
+
+    t_amp = extract_amp(y)
+    t_amp = t_amp.reshape(-1, 1)
+
     y = y.reshape(-1, y.shape[-1]**2)
-
-    p_amp = x[:, 1].reshape(-1)
-    p_seg = x[:, 0]
-
-    indices = torch.where(y.reshape(-1)!=0) #p_seg.shape=y.shape
-    t_amp = y.reshape(-1)[indices]
-    p_amp = p_amp[indices]
 
     t_seg = y/y
     t_seg[t_seg!=t_seg] = 0
@@ -633,6 +632,6 @@ def seg_amp_loss(x, y):
     seg_loss = seg_loss(p_seg, t_seg)
 
     amp_loss = nn.L1Loss()
-    amp_loss = amp_loss(p_amp, t_amp)
+    amp_loss = amp_loss(p_amp, t_amp.cuda())
 
-    return seg_loss + amp_loss
+    return 1.3*seg_loss + 0.7*amp_loss

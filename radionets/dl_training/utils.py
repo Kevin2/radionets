@@ -80,20 +80,10 @@ def define_arch(arch_name, img_size):
         or arch_name == "filter_deep_phase"
     ):
         arch = getattr(architecture, arch_name)(img_size)
-    elif arch_name == "MixedUNet":
+    elif (arch_name == "MixedUNet" or arch_name == "MixedUNet_fix"):
         unet = getattr(architecture, "UNet_seg")()
-        checkpoint = torch.load('analysis/models/1_1seg_best.model')
-        unet.load_state_dict(checkpoint["model"])
         cnn = getattr(architecture, "Cnn_amp")()
-        arch = getattr(architecture, arch_name)(unet, cnn)
-    elif arch_name == "MixedUNet_fix":
-        unet = getattr(architecture, "UNet_seg")()
-        checkpoint = torch.load('analysis/models/1_1seg_best.model')
-        unet.load_state_dict(checkpoint["model"])
-        for p in unet.parameters():
-            p.requires_grad = False
-        cnn = getattr(architecture, "Cnn_amp")()
-        arch = getattr(architecture, arch_name)(unet, cnn)
+        arch = getattr(architecture, "MixedUNet")(unet, cnn)
     else:
         arch = getattr(architecture, arch_name)()
     return arch

@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 from radionets.dl_framework.model import init_cnn
 import sys
@@ -19,6 +20,7 @@ from radionets.dl_framework.loss_functions import (
     pos_loss,
     amp_loss,
     segamp_loss,
+    seg_amp_loss,
 )
 from radionets.dl_framework.callbacks import (
     normalize_tfm,
@@ -131,6 +133,8 @@ def define_learner(
         loss_func = amp_loss
     elif loss_func == "segamp_loss":
         loss_func = segamp_loss
+    elif loss_func == "seg_amp_loss":
+        loss_func = seg_amp_loss
     else:
         print("\n No matching loss function or architecture! Exiting. \n")
         sys.exit(1)
@@ -139,4 +143,12 @@ def define_learner(
     learn = get_learner(
         data, arch, lr=lr, opt_func=opt_func, cb_funcs=cbfs, loss_func=loss_func
     )
+    name, fix, _ = train_conf["arch_name"].partition("_")
+    if name == "MixedUNet":
+        checkpoint = torch.load('analysis/models/1_1seg_best.model')
+        learn.model.unet.load_state_dict(checkpoint["model"])
+        if fix == "fix":
+            for p in learn.model.unet.parameters():
+                p.requires_grad = False
+
     return learn
