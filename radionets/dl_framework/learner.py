@@ -17,6 +17,8 @@ from radionets.dl_framework.loss_functions import (
     spe,
     seg_loss,
     pos_loss,
+    amp_loss,
+    segamp_loss,
 )
 from radionets.dl_framework.callbacks import (
     normalize_tfm,
@@ -125,6 +127,10 @@ def define_learner(
         loss_func = seg_loss
     elif loss_func == "pos_loss":
         loss_func = pos_loss
+    elif loss_func == "amp_loss":
+        loss_func = amp_loss
+    elif loss_func == "segamp_loss":
+        loss_func = segamp_loss
     else:
         print("\n No matching loss function or architecture! Exiting. \n")
         sys.exit(1)

@@ -5,7 +5,9 @@ from tqdm import tqdm
 import matplotlib as mpl
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.pyplot as plt
-from radionets.dl_framework.model import load_pre_model, build_matcher, sort
+from radionets.dl_framework.model import (
+    load_pre_model, build_matcher, sort, extract_amp
+)
 from radionets.dl_framework.data import do_normalisation, load_data
 import radionets.dl_framework.architectures as architecture
 from radionets.simulations.utils import adjust_outpath
@@ -174,7 +176,7 @@ def plot_lr(learn, model_path):
     plt.ioff()
     save_path = model_path.with_suffix("")
     print(f"\nPlotting Learning rate for: {model_path.stem}\n")
-    learn.recorder.plot_sched()#_lr
+    plt.plot(learn.recorder.lrs)#learn.recorder.plot_sched()#_lr
     plt.savefig(f"{save_path}_lr.pdf", bbox_inches="tight", pad_inches=0.01)
     plt.clf()
     mpl.rcParams.update(mpl.rcParamsDefault)
@@ -268,6 +270,45 @@ def plot_results(inp, pred, truth, transformed_imgs, model_path, save=False):
 
 
 def create_inspection_lists(learn, train_conf, mode):
+    path = Path(train_conf["data_path"])
+    if path.match('data_amp'):
+        inspect_amp(learn, train_conf, mode)
+    else:
+        inspect_pos(learn, train_conf, mode)
+
+
+def inspect_amp(learn, train_conf, mode):
+    test_ds = load_data(
+        train_conf["data_path"],
+        "test",
+        fourier=train_conf["fourier"],
+        transformed_imgs=train_conf["transformed_imgs"],
+        source_list=True
+    )
+    num_tests = train_conf["num_tests"]
+    img_test, list_true, ind = get_images(test_ds, num_tests, train_conf["norm_path"])
+
+    print("\n")
+    print("Calculating Predictions: ")
+
+    truth = list_true[:, 0, -1]
+
+    if mode == "train":
+        pred = eval_model(img_test.cuda(), learn.model)
+    elif mode == "evaluate":
+        pred = eval_model(img_test, learn.model)
+
+    pred = pred.reshape(truth.shape)
+
+    rel_var = abs(pred-truth)/truth
+    var = rel_var.mean().item()
+    print('The mean relative error between truth and predictions is {:.2f}%'.format(1e2*var))
+    c = torch.stack((pred, truth), dim=1)
+    i = np.random.randint(0, num_tests, size=5)
+    print(c[i])
+
+
+def inspect_pos(learn, train_conf, mode):
     test_ds = load_data(
         train_conf["data_path"],
         "test",
@@ -334,10 +375,26 @@ def create_inspection_plots(learn, train_conf, mode):
     test_size = len(test_ds)
     img_test, img_true, _ = get_images(test_ds, test_size, train_conf["norm_path"])
 
+    seg_true = img_true/img_true
+    seg_true[seg_true!=seg_true] = 0
+    seg_true = seg_true.cpu()
+
     if mode == "train":
-        pred = eval_model(img_test.cuda(), learn.model)
+        seg_pred = eval_model(img_test.cuda(), learn.model)
+        seg_pred = seg_pred.cpu()
     elif mode == "evaluate":
-        pred = eval_model(img_test, learn.model)
+        seg_pred = eval_model(img_test, learn.model)
+
+    if type(seg_pred)==tuple:
+        amp_pred = seg_pred[1]
+        seg_pred = seg_pred[0]
+
+        amp_true = extract_amp(img_true)
+        amp_true = amp_true.reshape(amp_pred.shape)
+
+        amp_loss = torch.nn.L1Loss()
+        amp_loss = amp_loss(amp_pred, amp_true)
+        print("Mean L1 Loss for the amplitude prediction: ", amp_loss.item())
 
     model_path = train_conf["model_path"]
     out_path = Path(model_path).parent
@@ -350,13 +407,13 @@ def create_inspection_plots(learn, train_conf, mode):
     if train_conf["fourier"]:
         for i in range(test_size):
             visualize_with_fourier(
-                i, img_test[i], pred[i], img_true[i], amp_phase=True, out_path=out_path
+                i, img_test[i], seg_pred[i], seg_true[i], amp_phase=True, out_path=out_path
             )
     else:
         plot_results(
             img_test[ind].cpu(),
-            reshape_2d(pred[ind].cpu()),
-            img_true[ind].cpu(),
+            reshape_2d(seg_pred[ind].cpu()),
+            seg_true[ind].cpu(),
             train_conf["transformed_imgs"],
             out_path,
             save=True,
@@ -365,7 +422,7 @@ def create_inspection_plots(learn, train_conf, mode):
     for n in 1 - np.linspace(0.5, 0.9, 6):
         print("\n")
         print('Inspecting with threshold value: {:.2f}'.format(n))
-        dist, pred_ns, indices = segmap_insp(img_true, reshape_2d(pred), n)
+        dist, pred_ns, indices = segmap_insp(seg_true, reshape_2d(seg_pred), n)
         acc = 1 - len(pred_ns[0])/test_size
         print('Distance Loss: {}'.format(dist))
         print('Accuracy: {:.2f}% for threshold value: {:.2f}'.format(1e2*acc, n))
@@ -405,7 +462,7 @@ def segmap_insp(truth, pred, threshold):
             d = abs(tru-pre).sum()/(2*t)
 
         if d.item() != 0:
-            arr[str(j)] = d.item()
+            arr[j] = d.item()
 
         z[0].append(p)
         z[1].append(t)

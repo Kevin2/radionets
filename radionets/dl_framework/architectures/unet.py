@@ -10,10 +10,113 @@ from radionets.dl_framework.model import (
     flatten_with_channel,
     shape,
     unsqueeze1,
+    squeeze1,
 )
 
 
-class UNet_e(nn.Module):
+class UNet_segamp(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        self.unsqueeze = Lambda(unsqueeze1)
+        self.squeeze = Lambda(squeeze1)
+
+        self.dconv_down1 = nn.Sequential(*double_conv(1, 4))
+        self.dconv_down2 = nn.Sequential(*double_conv(4, 8))
+        self.dconv_down3 = nn.Sequential(*double_conv(8, 16))
+        self.dconv_down4 = nn.Sequential(*double_conv(16, 32))
+        self.dconv_down5 = nn.Sequential(*double_conv(32, 64))
+
+        self.maxpool = nn.MaxPool2d(2)
+        self.upsample = nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True)
+
+        self.dconv_up4 = nn.Sequential(*double_conv(32 + 64, 32))
+        self.dconv_up3 = nn.Sequential(*double_conv(16 + 32, 16))
+        self.dconv_up2 = nn.Sequential(*double_conv(8 + 16, 8))
+        self.dconv_up1 = nn.Sequential(*double_conv(4 + 8, 4))
+
+        self.conv_last = nn.Conv2d(4, 1, 1)
+
+        self.dconv_cnn1 = nn.Sequential(
+            *conv(2, 256),
+            self.maxpool,
+            *conv(256, 256),
+            self.maxpool,
+        )
+        self.dconv_cnn2 = nn.Sequential(
+            *conv(256, 512),
+            self.maxpool,
+            *conv(512, 512),
+            self.maxpool,
+        )
+        self.conv_cnn = nn.Sequential(*conv(512, 1024))
+
+        self.flatten = Lambda(flatten)
+
+        self.lin_cnn = nn.Sequential(
+            nn.Linear(1024*4**2, 256),
+            nn.ReLU(),
+            nn.Linear(256, 256),
+            nn.ReLU(),
+        )
+        self.lin_last_cnn = nn.Sequential(nn.Linear(256, 1))
+
+    def forward(self, x):
+        inp_unet = self.unsqueeze(x)
+
+        conv1 = self.dconv_down1(inp_unet)
+        x = self.maxpool(conv1)
+
+        conv2 = self.dconv_down2(x)
+        x = self.maxpool(conv2)
+
+        conv3 = self.dconv_down3(x)
+        x = self.maxpool(conv3)
+
+        conv4 = self.dconv_down4(x)
+        x = self.maxpool(conv4)
+
+        x = self.dconv_down5(x)
+
+        x = self.upsample(x)
+        x = torch.cat([x, conv4], dim=1)
+
+        x = self.dconv_up4(x)
+
+        x = self.upsample(x)
+        x = torch.cat([x, conv3], dim=1)
+
+        x = self.dconv_up3(x)
+        x = self.upsample(x)
+        x = torch.cat([x, conv2], dim=1)
+
+        x = self.dconv_up2(x)
+        x = self.upsample(x)
+        x = torch.cat([x, conv1], dim=1)
+
+        x = self.dconv_up1(x)
+
+        x = self.conv_last(x)
+        out_unet = torch.sigmoid(x)
+        out_unet = self.squeeze(out_unet)
+
+        inp_unet = self.squeeze(inp_unet)
+        inp_cnn = torch.stack([inp_unet, out_unet], dim=1)
+
+        x = self.dconv_cnn1(inp_cnn)
+        x = self.dconv_cnn2(x)
+
+        x = self.conv_cnn(x)
+
+        x = self.flatten(x)
+
+        x = self.lin_cnn(x)
+        out_cnn = self.lin_last_cnn(x)
+
+        return self.flatten(out_unet), out_cnn
+
+
+class UNet_seg(nn.Module):
     def __init__(self):
         super().__init__()
 

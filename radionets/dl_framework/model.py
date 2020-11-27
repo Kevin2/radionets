@@ -101,7 +101,7 @@ def sort_ascending(x, entry=0):
 
 
 def reshape(x):
-    return x.reshape(-1, 2, 63, 63)
+    return x.reshape(-1, 64, 64)
 
 
 def round_(x):
@@ -118,13 +118,39 @@ def clamp(x):
     return torch.clamp(x, 0, 63)
 
 
+def retrieve(x):
+    """
+    Retrieve estimate amplitude from dirty image @source_position.
+    Note: For centered one source images. 
+    Generalize for other types of images later (take in source positions for
+    every image).
+    """
+    img_size = x.shape[-1]
+    pos_x = img_size//2
+    pos_y = pos_x
+    return x[:, pos_x, pos_y].reshape(-1, 1)
+
+
+def extract_amp(y):
+    y = y.reshape(-1, y.shape[-1]**2)
+    indices = torch.where(y.reshape(-1)!=0)
+    imgs, _ = torch.where(y!=0)
+    amps = y.reshape(-1)[indices]
+    arr = torch.empty(y.shape[0])
+    i = 0
+    for j in imgs:
+        arr[j] = amps[i]
+        i += 1
+    return arr
+
+
 def normalization(x):
     """
     Normalize each Image to have amplitudes elements of [0,1]
     [min,max] -> [0,1]
     """
     norm = ()
-    for j in range(len(x[:, 0, 0])):
+    for j in range(len(x)):
         b = torch.max(x[j]).item()
         a = torch.min(x[j]).item()
         n = (x[j] - a) / (b - a)
@@ -165,6 +191,10 @@ def fft_(x):
 
 def unsqueeze1(x):
     return x.unsqueeze(1)
+
+
+def squeeze1(x):
+    return x.squeeze(1)
 
 
 def shape(x):
@@ -340,7 +370,7 @@ class RunningBatchNorm(nn.Module):
         return x * self.factor + self.offset
 
 
-def conv(ni, nc, ks, stride, padding):
+def conv(ni, nc, ks=3, stride=1, padding=1):
     conv = (nn.Conv2d(ni, nc, ks, stride, padding),)
     bn = (nn.BatchNorm2d(nc),)
     act = GeneralRelu(leak=0.1, sub=0.4)  # nn.ReLU()

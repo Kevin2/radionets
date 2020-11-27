@@ -1,3 +1,4 @@
+import torch
 import sys
 import click
 from pathlib import Path
@@ -79,6 +80,20 @@ def define_arch(arch_name, img_size):
         or arch_name == "filter_deep_phase"
     ):
         arch = getattr(architecture, arch_name)(img_size)
+    elif arch_name == "MixedUNet":
+        unet = getattr(architecture, "UNet_seg")()
+        checkpoint = torch.load('analysis/models/1_1seg_best.model')
+        unet.load_state_dict(checkpoint["model"])
+        cnn = getattr(architecture, "Cnn_amp")()
+        arch = getattr(architecture, arch_name)(unet, cnn)
+    elif arch_name == "MixedUNet_fix":
+        unet = getattr(architecture, "UNet_seg")()
+        checkpoint = torch.load('analysis/models/1_1seg_best.model')
+        unet.load_state_dict(checkpoint["model"])
+        for p in unet.parameters():
+            p.requires_grad = False
+        cnn = getattr(architecture, "Cnn_amp")()
+        arch = getattr(architecture, arch_name)(unet, cnn)
     else:
         arch = getattr(architecture, arch_name)()
     return arch
@@ -104,7 +119,7 @@ def pop_interrupt(learn, train_conf):
 
 def end_training(learn, train_conf):
     # Save model
-    save_model(learn, train_conf["model_path"])
+    save_model(learn, Path(train_conf["model_path"]))
 
     # Plot loss
-    plot_loss(learn, train_conf["model_path"])
+    plot_loss(learn, Path(train_conf["model_path"]))

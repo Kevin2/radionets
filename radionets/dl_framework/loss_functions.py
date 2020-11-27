@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from radionets.dl_framework.hook_fastai import hook_outputs
 from torchvision.models import vgg16_bn
-from radionets.dl_framework.model import build_matcher, sort
+from radionets.dl_framework.model import build_matcher, sort, extract_amp
 import torch.nn.functional as F
 import pytorch_msssim
 from radionets.dl_framework.utils import children
@@ -573,7 +573,66 @@ def spe_(x, y):
     return loss
 
 def seg_loss(x, y):
+    y = y/y
+    y[y!=y] = 0
     y = y.reshape(-1, y.shape[-1]**2)
     loss = nn.BCELoss()
+    return loss(x, y)
+
+def seg_thresh_loss(x, y):
+    y = y.reshape(-1, y.shape[-1]**2)
+
+    loss = nn.BCELoss()
+
+    threshold = nn.Threshold(0.5, 0)
+    x = threshold(x)
 
     return loss(x, y)
+
+def amp_loss(x, y):
+    """
+    For y.shape = (bs, 1, 5), i.e. One source images.
+    """
+    x = x.reshape(-1, 1)
+    y = y[:, 0, -1].reshape(x.shape)
+    loss = nn.L1Loss()
+    return loss(x, y)
+
+def segamp_loss(x, y):
+    """
+    UNet + CNN. x is 2-dim. tupel.
+    x[0] = segmap, .shape=(bs, 64, 64)
+    x[1] = amp_pred, .shape=(bs, 1)
+    """
+    t_amp = extract_amp(y.cuda())
+    t_amp = t_amp.reshape(-1, 1).cuda()
+
+    x = x[1]
+    p_amp = x.reshape(-1, 1)
+
+    loss = nn.L1Loss()
+    return loss(p_amp, t_amp)
+
+def seg_amp_loss(x, y):
+    """
+    x.shape = (bs, 2, 64**2)
+    y.shape(bs, 64, 64)
+    """
+    y = y.reshape(-1, y.shape[-1]**2)
+
+    p_amp = x[:, 1].reshape(-1)
+    p_seg = x[:, 0]
+
+    indices = torch.where(y.reshape(-1)!=0) #p_seg.shape=y.shape
+    t_amp = y.reshape(-1)[indices]
+    p_amp = p_amp[indices]
+
+    t_seg = y/y
+    t_seg[t_seg!=t_seg] = 0
+    seg_loss = nn.BCELoss()
+    seg_loss = seg_loss(p_seg, t_seg)
+
+    amp_loss = nn.L1Loss()
+    amp_loss = amp_loss(p_amp, t_amp)
+
+    return seg_loss + amp_loss

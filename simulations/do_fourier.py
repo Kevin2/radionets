@@ -14,9 +14,6 @@ def main(data_path):
 
     """
 
-#    data_path = "./analysis/data_seg"
-    print("Data Path: ", data_path)
-
     samp_files = check_samp(data_path)
 
     if samp_files is not None:

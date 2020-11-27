@@ -34,7 +34,7 @@ def create_fft_images(sim_conf):
                 num_pointlike=sim_conf["num_pointlike_gaussians"],
                 num_pointsources=sim_conf["num_pointsources"],
                 noise=sim_conf["noise"],
-	        source_list=sim_conf["source_list"],
+                source_list=sim_conf["source_list"],
                 seg_map=sim_conf["seg_map"],
             )
 

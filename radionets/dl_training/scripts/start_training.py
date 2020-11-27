@@ -105,14 +105,19 @@ def main(configuration_path, mode):
 
         end_training(learn, train_conf)
 
-        if train_conf["inspection"]:
-            num_tests = train_conf["num_tests"]
+        if train_conf["param_scheduling"]:
+            plot_lr(learn, Path(train_conf["model_path"]))
 
+        if train_conf["inspection"]:
             if train_conf["source_list"]==True:
                 create_inspection_lists(learn, train_conf, mode)
 
             else:
                 create_inspection_plots(learn, train_conf, mode)
+
+        if train_conf["source_list"]:
+            print(learn.model)
+            print("-------------------------------------------------------------")
 
     if mode == "lr_find":
         click.echo("Start lr_find.\n")
@@ -126,6 +131,7 @@ def main(configuration_path, mode):
 
         # load pretrained model
         if train_conf["pre_model"] != "none":
+            learn.create_opt()
             load_pre_model(learn, train_conf["pre_model"], lr_find=True)
 
         learn.lr_find()
@@ -178,14 +184,12 @@ def main(configuration_path, mode):
 
         num_tests = train_conf["num_tests"]
 
-        if train_conf["source_list"]==True:
+        if train_conf["source_list"]:
             create_inspection_lists(learn, train_conf, mode)
+            print(learn.model)
+            print('-------------------------------------------------------------')
         else:
             create_inspection_plots(learn, train_conf, mode)
-    if train_conf["source_list"]:
-        print(learn.model)
-        print("-----------------------------------------------------------------")
-
 
 if __name__ == "__main__":
     main()

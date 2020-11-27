@@ -63,10 +63,11 @@ def simulate_gaussian_sources(
 
         #Sort the source list along x
         if source_list and not seg_map:
-            a = truth[:, :, 0]
-            indices = np.argsort(a)
-            for j in range(bundle_size):
-                truth[j] = truth[j, indices[j], :]
+            if truth.shape[1]!=1:
+                a = truth[:, :, 0]
+                indices = np.argsort(a)
+                for j in range(bundle_size):
+                    truth[j] = truth[j, indices[j], :]
 
         bundle = ext_gaussian + pointlike + pointsource
         images = bundle.copy()
@@ -421,14 +422,18 @@ def create_gauss(grid, sources, spherical, source_list, segmap):
     if isinstance(sources, list):
         u = sources[0]
         sources = sources[1]
-        likelihood = True
+        likelihood = False #True
     else:
         u = sources
         likelihood = False
 
     mx = np.random.randint(1, img_size, size=(N, sources))
     my = np.random.randint(1, img_size, size=(N, sources))
-    amp = (np.random.randint(1, 100, size=(N)) *1/10* np.random.randint(5, 10)) / 1e2
+    amp = (np.random.randint(1, 100, size=(N, sources)) *1/10* np.random.randint(5, 10)) / 1e2
+
+    if sources==1:
+        mx = np.array([img_size//2]*N).reshape(-1, 1)
+        my = mx
 
     if spherical:
         sx = np.random.randint(1, 15, size=(N, sources))/10
@@ -443,9 +448,9 @@ def create_gauss(grid, sources, spherical, source_list, segmap):
     for i in range(N):
         targets = np.random.randint(u, sources+1)
         for j in range(targets):
-            g = gauss(mx[i, j], my[i, j], sx[i, j], sy[i, j], amp[i])
-            s[i, j] = np.array([mx[i, j], my[i, j], sx[i, j], sy[i, j], amp[i], 1])
-            r[i, my[i, j], mx[i, j]] = 1
+            g = gauss(img_size, mx[i, j], my[i, j], sx[i, j], sy[i, j], amp[i, j])
+            s[i, j] = np.array([my[i, j], mx[i, j], sx[i, j], sy[i, j], amp[i, j],1])
+            r[i, my[i, j], mx[i, j]] = amp[i, j] #1
             if spherical:
                 img[i] += g
             else:
@@ -491,9 +496,9 @@ def gauss_pointsources(grid, sources, source_list, segmap):
     for i in range(num_img):
         targets = np.random.randint(u, sources + 1)
         for j in range(targets):
-            g = gauss(mx[i, j], my[i, j], sigma, sigma, amp[i])
+            g = gauss(img_size, mx[i, j], my[i, j], sigma, sigma, amp[i])
             img[i] += g
-            s[i,j] = np.array([mx[i,j],my[i,j],sigma,sigma,amp[i]])
+            s[i,j] = np.array([my[i,j], mx[i,j], sigma, sigma, amp[i]])
             r[i, my[i, j], mx[i, j]] = 1
 
     if source_list and not segmap:
@@ -504,7 +509,7 @@ def gauss_pointsources(grid, sources, source_list, segmap):
         return np.array(img)
 
 
-def gauss(mx, my, sx, sy, amp=0.01):
-    x = np.arange(63)[None].astype(np.float)
+def gauss(img_size, mx, my, sx, sy, amp=0.01):
+    x = np.arange(img_size)[None].astype(np.float)
     y = x.T
     return amp * np.exp(-((y - my) ** 2) / sy).dot(np.exp(-((x - mx) ** 2) / sx))

@@ -1,13 +1,15 @@
 from torch import nn
+from torchvision.transforms import CenterCrop
 from radionets.dl_framework.model import (
     conv,
+    double_conv,
     Lambda,
     flatten,
     unsqueeze1,
     absolute,
     normalization,
     clamp,
-    round_,
+    retrieve,
 )
 
 
@@ -38,6 +40,7 @@ def list_pos_():
 def list_pos():
     """
     Conv-Network with source list as target. Position only. FFT beforehand.
+    Best attempt at LIST position problem.
     """
     arch = nn.Sequential(
         Lambda(normalization),
@@ -47,7 +50,7 @@ def list_pos():
         Lambda(flatten),
         nn.Linear(23814, 2300),
         nn.ReLU(),
-        nn.Dropout(p=0.3),
+        nn.Dropout(p=0.4),
         nn.Linear(2300, 230),
         nn.ReLU(),
         nn.Dropout(p=0.3),
@@ -57,19 +60,119 @@ def list_pos():
     return arch
 
 
-def onesource():
+def small():
+    arch = nn.Sequential(
+        CenterCrop(5),
+        Lambda(flatten),
+        nn.Linear(25, 225),
+        nn.ReLU(),
+        nn.Linear(225, 2500),
+        nn.ReLU(),
+        nn.Linear(2500, 5000),
+        nn.ReLU(),
+        nn.Linear(5000, 2500),
+        nn.ReLU(),
+        nn.Linear(2500, 225),
+        nn.ReLU(),
+        nn.Linear(225, 25),
+        nn.ReLU(),
+        nn.Linear(25 , 1),
+        Lambda(absolute),
+    )
+    return arch
+
+
+class Cnn_amp(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        self.maxpool = nn.MaxPool2d(2)
+
+        self.dconv_1 = nn.Sequential(
+            *conv(2, 256),
+            self.maxpool,
+            *conv(256, 256),
+            self.maxpool,
+        )
+        self.dconv_2 = nn.Sequential(
+            *conv(256, 512),
+            self.maxpool,
+            *conv(512, 512),
+            self.maxpool,
+        )
+        self.conv = nn.Sequential(*conv(512, 1024))
+        self.flatten = Lambda(flatten)
+        self.lin = nn.Sequential(
+            nn.Linear(1024*4**2, 256),
+            nn.ReLU(),
+            nn.Linear(256, 256),
+            nn.ReLU(),
+        )
+        self.last_lin = nn.Sequential(nn.Linear(256, 1))
+        self.absolute = Lambda(absolute)
+
+    def forward(self, x):
+        x = self.dconv_1(x)
+        x = self.dconv_2(x)
+        x = self.conv(x)
+
+        x = self.flatten(x)
+
+        x = self.lin(x)
+        out = self.last_lin(x)
+
+        return self.absolute(out)
+
+
+def cnn_amp():
     """
-    For one source images.
+    Best attempt at amplitude problem. Tested on one source imgs.
     """
     arch = nn.Sequential(
         Lambda(unsqueeze1),
-        *conv(1, 5, (3, 3), 1, 1),
+        *conv(1, 256),
+        nn.MaxPool2d(2),
+        *conv(256, 256),
+        nn.MaxPool2d(2),
+        *conv(256, 512),
+        nn.MaxPool2d(2),
+        *conv(512, 512),
+        nn.MaxPool2d(2),
+        *conv(512, 1024),
         Lambda(flatten),
-        nn.Linear(19845, 5000),
+        nn.Linear(1024*3**2, 256),
         nn.ReLU(),
-        nn.Linear(5000, 500),
+        nn.Linear(256, 256),
         nn.ReLU(),
-        nn.Linear(500, 5),
+        nn.Linear(256, 1),
+        Lambda(absolute),
+    )
+    return arch
+
+
+def amp():
+    """
+    Predict amplitudes for one source images.
+    """
+    arch = nn.Sequential(
+        Lambda(unsqueeze1),
+        nn.MaxPool2d(2),#31*31
+        *conv(1, 5),
+        nn.MaxPool2d(2), #5*15*15
+        *conv(5, 10),
+        nn.MaxPool2d(2),#7*7*10
+        *conv(10, 20),
+        Lambda(flatten),
+        nn.Linear(980, 500),
+        nn.ReLU(),
+        nn.Linear(500, 240),
+        nn.ReLU(),
+        nn.Linear(240, 120),
+        nn.ReLU(),
+        nn.Linear(120, 25),
+        nn.ReLU(),
+        nn.Linear(25, 1),
+        Lambda(absolute),
     )
     return arch
 
