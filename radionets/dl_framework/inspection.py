@@ -380,8 +380,7 @@ def create_inspection_plots(learn, train_conf, mode):
     seg_true = seg_true.cpu()
 
     if mode == "train":
-        seg_pred = eval_model(img_test.cuda(), learn.model)
-        seg_pred = seg_pred.cpu()
+        seg_pred = eval_model(img_test, learn.model.cpu())
     elif mode == "evaluate":
         seg_pred = eval_model(img_test, learn.model)
 
