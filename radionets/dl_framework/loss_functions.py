@@ -432,9 +432,10 @@ def loss_mse_msssim(x, y):
 
 
 def spe(x, y):
-    # print(x.shape, y.shape)
     y = y.squeeze()
     y = y / 62
+    x = x.reshape(-1, 3, 2)
+    # print(x.shape, y.shape)
 
     # print(y[0])
 
@@ -452,7 +453,7 @@ def spe(x, y):
         value = 0
     k = sum(loss)
     loss = k / len(x)
-    return loss
+    return loss.sum()
 
 
 # sort after fitting x pos (dependent on y or not)
@@ -572,19 +573,20 @@ def pos_loss(x, y):
     Permutation Loss for Source-positions list. With hungarian method
     to solve assignment problem.
     """
-    out = x.reshape(-1, 3, 2)
-    tar = y[:, 0, :, :2] / 63
+    out = x
+    tar = y[:, 0, :, :2] / 62
 
     matcher = build_matcher()
     matches = matcher(out, tar)
     # give x and y coords
 
     out_ord, _ = zip(*matches)
+    # print(len(out_ord))
 
     ordered = [sort(out[v], out_ord[v]) for v in range(len(out))]
     out = torch.stack(ordered)
 
-    loss = nn.MSELoss()
+    loss = nn.L1Loss()
     loss = loss(out, tar)
 
     return loss
