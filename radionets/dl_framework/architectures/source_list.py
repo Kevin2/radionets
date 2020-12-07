@@ -81,6 +81,48 @@ def small():
     )
     return arch
 
+class Cnn_amp_n(nn.Module):
+    def __init__(self, n):
+        super().__init__()
+
+        self.maxpool = nn.MaxPool2d(2)
+
+        self.dconv_1 = nn.Sequential(
+            *conv(2, 512),
+            self.maxpool,
+            *conv(512, 512),
+            self.maxpool,
+        )
+        self.dconv_2 = nn.Sequential(
+            *conv(512, 1024),
+            self.maxpool,
+            *conv(1024, 1024),
+            self.maxpool,
+        )
+        self.conv = nn.Sequential(*conv(1024, 2048))
+        self.flatten = Lambda(flatten)
+        self.lin = nn.Sequential(
+            nn.Linear(2048*4**2, 512),
+            nn.ReLU(),
+            nn.Dropout(),
+            nn.Linear(512, 512),
+            nn.ReLU(),
+            nn.Dropout(p=0.4),
+        )
+        self.last_lin = nn.Sequential(nn.Linear(512, n))
+        self.absolute = Lambda(absolute)
+
+    def forward(self, x):
+        x = self.dconv_1(x)
+        x = self.dconv_2(x)
+        x = self.conv(x)
+
+        x = self.flatten(x)
+
+        x = self.lin(x)
+        out = self.last_lin(x)
+
+        return self.absolute(out)
 
 class Cnn_amp(nn.Module):
     def __init__(self):

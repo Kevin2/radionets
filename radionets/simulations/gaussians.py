@@ -427,8 +427,7 @@ def create_gauss(grid, sources, spherical, source_list, segmap):
         u = sources
         likelihood = False
 
-    mx = np.random.randint(1, img_size, size=(N, sources))
-    my = np.random.randint(1, img_size, size=(N, sources))
+    choice = np.arange(1, img_size-1)
     amp = (np.random.randint(1, 100, size=(N, sources)) *1/10* np.random.randint(5, 10)) / 1e2
 
     if sources==1:
@@ -447,10 +446,12 @@ def create_gauss(grid, sources, spherical, source_list, segmap):
     r = np.zeros((N, img_size, img_size))
     for i in range(N):
         targets = np.random.randint(u, sources+1)
+        mx = np.random.choice(choice, targets, replace=False)
+        my = np.random.choice(choice, targets, replace=False)
         for j in range(targets):
-            g = gauss(img_size, mx[i, j], my[i, j], sx[i, j], sy[i, j], amp[i, j])
-            s[i, j] = np.array([my[i, j], mx[i, j], sx[i, j], sy[i, j], amp[i, j],1])
-            r[i, my[i, j], mx[i, j]] = amp[i, j] #1
+            g = gauss(img_size, mx[j], my[j], sx[i, j], sy[i, j], amp[i, j])
+            s[i, j] = np.array([my[j], mx[j], sx[i, j], sy[i, j], amp[i, j],1])
+            r[i, my[j], mx[j]] = amp[i, j] #1
             if spherical:
                 img[i] += g
             else:

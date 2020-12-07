@@ -580,6 +580,8 @@ def seg_loss(x, y):
     return loss(x, y)
 
 def seg_thresh_loss(x, y):
+    y = y/y
+    y[y!=y] = 0
     y = y.reshape(-1, y.shape[-1]**2)
 
     loss = nn.BCELoss()
@@ -602,13 +604,25 @@ def segamp_loss(x, y):
     """
     UNet + CNN. x is 2-dim. tupel.
     x[0] = segmap, .shape=(bs, 64, 64)
-    x[1] = amp_pred, .shape=(bs, 1)
+    x[1] = amp_pred, .shape=(bs, 1 or 7)
     """
-    y = extract_amp(y)
-    y = y.reshape(-1, 1)
-
     x = x[1]
-    x = x.reshape(-1, 1)
+    if x.shape[-1] == 1:
+        y = extract_amp(y)
+        y = y.reshape(x.shape)
+    else:
+        y = y.reshape(-1)
+        y = y[torch.where(y!=0)]
+        y = y.reshape(y.shape[0], -1, 1)
+        x = x.reshape(y.shape)
+
+        matcher = build_matcher()
+        matches = matcher(x, y)
+
+        x_ord, _ = zip(*matches)
+
+        ordered = [sort(x[v], x_ord[v]) for v in range(len(x))]
+        x = torch.stack(ordered)
 
     loss = nn.L1Loss()
     return loss(x, y.cuda())

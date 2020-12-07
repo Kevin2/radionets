@@ -74,15 +74,16 @@ def check_outpath(model_path, train_conf):
 
 
 def define_arch(arch_name, img_size):
-    if (
-        arch_name == "filter_deep"
-        or arch_name == "filter_deep_amp"
-        or arch_name == "filter_deep_phase"
-    ):
+    arc = arch_name.split("_")
+    if (arc[0] == "filter" and arc[1] == "deep"):
         arch = getattr(architecture, arch_name)(img_size)
-    elif (arch_name == "MixedUNet" or arch_name == "MixedUNet_fix"):
-        unet = getattr(architecture, "UNet_seg")()
-        cnn = getattr(architecture, "Cnn_amp")()
+    elif arc[0] == "MixedUNet":
+        if (len(arc) > 1 and arc[1]!="fix"):
+            n = int(arc[1])
+            cnn = getattr(architecture, "Cnn_amp_n")(n)
+        else:
+            cnn = getattr(architecture, "Cnn_amp")()
+        unet = getattr(architecture, "UNet_seg")() 
         arch = getattr(architecture, "MixedUNet")(unet, cnn)
     else:
         arch = getattr(architecture, arch_name)()

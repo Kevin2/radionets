@@ -388,11 +388,16 @@ def create_inspection_plots(learn, train_conf, mode):
         amp_pred = seg_pred[1]
         seg_pred = seg_pred[0]
 
-        amp_true = extract_amp(img_true)
+        if amp_pred.shape[-1]==1:
+            amp_true = extract_amp(img_true)
+        else:
+            img_true = img_true.reshape(-1)
+            amp_true = img_true[torch.where(img_true!=0)]
         amp_true = amp_true.reshape(amp_pred.shape)
 
         amp_loss = torch.nn.L1Loss()
         amp_loss = amp_loss(amp_pred, amp_true)
+        C = torch.stack((amp_pred[:5], amp_true[:5]), dim=1)
         rel_var = abs(amp_pred-amp_true)/amp_true
         rel_var = rel_var.mean().item()
         print("Amplitude Prediction: ")
@@ -400,6 +405,7 @@ def create_inspection_plots(learn, train_conf, mode):
         print("Mean L1 Loss: ", amp_loss.item())
         print("Mean Relative Error: {:.2f}%".format(rel_var*1e2))
         print("----------------------")
+        print(C)
 
     model_path = train_conf["model_path"]
     out_path = Path(model_path).parent
@@ -425,54 +431,52 @@ def create_inspection_plots(learn, train_conf, mode):
         )
 
     for n in 1 - np.linspace(0.5, 0.9, 6):
+        tol = 2**(1/2)
         print("\n")
-        print('Inspecting with threshold value: {:.2f}'.format(n))
-        dist, pred_ns, indices = segmap_insp(seg_true, reshape_2d(seg_pred), n)
-        acc = 1 - len(pred_ns[0])/test_size
-        print('Distance Loss: {}'.format(dist))
-        print('Accuracy: {:.2f}% for threshold value: {:.2f}'.format(1e2*acc, n))
+        print('Threshold value: {:.2f} and Tolerance: {:.2f}'.format(n, tol))
+        tpr, ppv = segmap_insp(seg_true, reshape_2d(seg_pred), n, tol)
+        print(' Hit Rate TPR: {} \n Precision PPV: {}'.format(tpr, ppv))
+        print('F1 Score: {}'.format(2*ppv*tpr/(tpr+ppv)))
 
-    if acc >= 0.98:
-        print(pred_ns)
-        print(indices)
+def segmap_insp(truth, pred, threshold, tolerance):
+    thresh = torch.nn.Threshold(threshold-1e-4, 0)
+    pred = thresh(pred)
 
-def segmap_insp(truth, pred, threshold):
-    size = len(truth)
+    i, x, y = torch.where(truth != 0)
+    I, X, Y = torch.where(pred != 0)
+    tru_pos = torch.stack((x, y), dim=1).to(torch.float64)
+    pre_pos = torch.stack((X, Y), dim=1).to(torch.float64)
 
-    i, x, y = torch.where(truth==1)
-    I, X, Y = torch.where(pred >= threshold)
-    tru_pos = torch.stack((x, y), dim=1)
-    pre_pos = torch.stack((X, Y), dim=1)
-
-    arr = {}
-    z = [[], []]
+    TP = []
     matcher = build_matcher()
 
-    for j in tqdm(range(size)):
+    for j in range(len(truth)):
         index_p = torch.where(I==j)
-        p = len(index_p[0])
         index_t = torch.where(i==j)
-        t = len(index_t[0])
 
-        tru = tru_pos[index_t]
         pre = pre_pos[index_p]
+        tru = tru_pos[index_t]
+
+        p = len(index_p[0])
+        t = len(index_t[0])
 
         if t >= p:
             tru_ord, _ = matcher(tru, pre)[0]
             tru = tru[tru_ord, :]
-            d = abs(tru-pre).sum()/(2*p)
+            d = [torch.cdist(tru, pre)[k, k] for k in range(p)]
+            d = torch.stack(d)
+            TPj = len(torch.where(d<=tolerance)[0])
         else:
             pre_ord, _ = matcher(pre, tru)[0]
             pre = pre[pre_ord, :]
-            d = abs(tru-pre).sum()/(2*t)
+            d = [torch.cdist(tru, pre)[k, k] for k in range(t)]
+            d = torch.stack(d)
+            TPj = len(torch.where(d<=tolerance)[0])
 
-        if d.item() != 0:
-            arr[j] = d.item()
+        TP.append(TPj)
 
-        z[0].append(p)
-        z[1].append(t)
+    TP = sum(TP)
+    TPR = TP/len(i)
+    PPV = TP/len(I)
 
-    z = np.array(z)
-    err = np.where(z[0]!=z[1])[0]
-
-    return arr, z[:, err], err
+    return TPR, PPV

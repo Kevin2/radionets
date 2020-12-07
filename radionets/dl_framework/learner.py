@@ -143,11 +143,16 @@ def define_learner(
     learn = get_learner(
         data, arch, lr=lr, opt_func=opt_func, cb_funcs=cbfs, loss_func=loss_func
     )
-    name, fix, _ = train_conf["arch_name"].partition("_")
-    if name == "MixedUNet":
-        checkpoint = torch.load('analysis/models/1_1seg_best.model')
-        learn.model.unet.load_state_dict(checkpoint["model"])
-        if fix == "fix":
+    arc = train_conf["arch_name"].split("_")
+    if arc[0] == "MixedUNet":
+        if len(arc) > 1 and arc[1] != "fix" and arc[1] != "1":
+            checkpoint = torch.load('analysis/models/1aseg.model')
+            learn.model.unet.load_state_dict(checkpoint["model"])
+        else:
+            checkpoint = torch.load("analysis/models/1_1seg_best.model")
+            learn.model.unet.load_state_dict(checkpoint["model"])
+
+        if arc[-1] == "fix":
             for p in learn.model.unet.parameters():
                 p.requires_grad = False
 
