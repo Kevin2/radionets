@@ -613,11 +613,12 @@ def segamp_loss(x, y):
     else:
         y = y.reshape(-1)
         y = y[torch.where(y!=0)]
-        y = y.reshape(y.shape[0], -1, 1)
-        x = x.reshape(y.shape)
+        y = y.reshape(x.shape[0], -1, 1)
+        ##y = torch.log(y)##
+        x = x.reshape(x.shape[0], -1, 1)
 
         matcher = build_matcher()
-        matches = matcher(x, y)
+        matches = matcher(x.cuda(), y.cuda())
 
         x_ord, _ = zip(*matches)
 
@@ -625,7 +626,7 @@ def segamp_loss(x, y):
         x = torch.stack(ordered)
 
     loss = nn.L1Loss()
-    return loss(x, y.cuda())
+    return loss(x.cuda(), y.cuda())
 
 def seg_amp_loss(x, y):
     """

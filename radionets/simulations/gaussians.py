@@ -430,10 +430,6 @@ def create_gauss(grid, sources, spherical, source_list, segmap):
     choice = np.arange(1, img_size-1)
     amp = (np.random.randint(1, 100, size=(N, sources)) *1/10* np.random.randint(5, 10)) / 1e2
 
-    if sources==1:
-        mx = np.array([img_size//2]*N).reshape(-1, 1)
-        my = mx
-
     if spherical:
         sx = np.random.randint(1, 15, size=(N, sources))/10
         sy = sx
@@ -448,6 +444,9 @@ def create_gauss(grid, sources, spherical, source_list, segmap):
         targets = np.random.randint(u, sources+1)
         mx = np.random.choice(choice, targets, replace=False)
         my = np.random.choice(choice, targets, replace=False)
+        if sources == 1:
+            mx = np.array(img_size//2).reshape(-1)
+            my = mx
         for j in range(targets):
             g = gauss(img_size, mx[j], my[j], sx[i, j], sy[i, j], amp[i, j])
             s[i, j] = np.array([my[j], mx[j], sx[i, j], sy[i, j], amp[i, j],1])

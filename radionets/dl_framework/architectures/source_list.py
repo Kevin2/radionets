@@ -84,7 +84,7 @@ def small():
 class Cnn_amp_n(nn.Module):
     def __init__(self, n):
         super().__init__()
-
+        self.log = Lambda(log)
         self.maxpool = nn.MaxPool2d(2)
 
         self.dconv_1 = nn.Sequential(
@@ -105,14 +105,18 @@ class Cnn_amp_n(nn.Module):
             nn.Linear(2048*4**2, 512),
             nn.ReLU(),
             nn.Dropout(),
-            nn.Linear(512, 512),
+            nn.Linear(512, 256),
             nn.ReLU(),
             nn.Dropout(p=0.4),
+            nn.Linear(256, 256),
+            nn.ReLU(),
+            nn.Dropout(p=0.25),
         )
-        self.last_lin = nn.Sequential(nn.Linear(512, n))
-        self.absolute = Lambda(absolute)
+        self.last_lin = nn.Sequential(nn.Linear(256, n))
+#        self.absolute = Lambda(absolute)
 
     def forward(self, x):
+        x = self.log(x)
         x = self.dconv_1(x)
         x = self.dconv_2(x)
         x = self.conv(x)
@@ -122,7 +126,7 @@ class Cnn_amp_n(nn.Module):
         x = self.lin(x)
         out = self.last_lin(x)
 
-        return self.absolute(out)
+        return out
 
 class Cnn_amp(nn.Module):
     def __init__(self):
@@ -166,9 +170,56 @@ class Cnn_amp(nn.Module):
         return self.absolute(out)
 
 
+class CNN_amp(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        self.unsqueeze = Lambda(unsqueeze1)
+        self.maxpool = nn.MaxPool2d(2)
+
+        self.dconv_1 = nn.Sequential(
+            *conv(1, 256),
+            self.maxpool,
+            *conv(256, 256),
+            self.maxpool,
+        )
+        self.dconv_2 = nn.Sequential(
+            *conv(256, 512),
+            self.maxpool,
+            *conv(512, 512),
+            self.maxpool,
+        )
+        self.conv = nn.Sequential(*conv(512, 1024))
+        self.flatten = Lambda(flatten)
+        self.lin = nn.Sequential(
+            nn.Linear(1024*4**2, 256),
+            nn.ReLU(),
+            nn.Linear(256, 256),
+            nn.ReLU(),
+        )
+        self.last_lin = nn.Sequential(nn.Linear(256, 1))
+        self.absolute = Lambda(absolute)
+
+    def forward(self, x):
+        x = self.unsqueeze(x)
+
+        x = self.dconv_1(x)
+        x = self.dconv_2(x)
+        x = self.conv(x)
+
+        x = self.flatten(x)
+
+        x = self.lin(x)
+        x = self.last_lin(x)
+
+        out = self.absolute(x)
+
+        return out
+
+
 def cnn_amp():
     """
-    Best attempt at amplitude problem. Tested on one source imgs.
+    Best attempt at amplitude problem. Tested on one source imgs. (63x63)
     """
     arch = nn.Sequential(
         Lambda(unsqueeze1),

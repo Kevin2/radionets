@@ -155,5 +155,17 @@ def define_learner(
         if arc[-1] == "fix":
             for p in learn.model.unet.parameters():
                 p.requires_grad = False
+    elif arc[0] == "CropUNet":
+        check1 = torch.load('analysis/models/2aseg.model')
+        if arc[1] == '7':
+            check1 = torch.load('analysis/models/1aseg.model')
+        check2 = torch.load('analysis/models/best_amp.model')
+
+        learn.model.unet.load_state_dict(check1['model'])
+        learn.model.cnn.load_state_dict(check2['model'])
+
+        if arc[-1] == "fix":
+            for p in learn.model.unet.parameters():
+                p.requires_grad = False
 
     return learn

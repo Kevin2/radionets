@@ -393,17 +393,27 @@ def create_inspection_plots(learn, train_conf, mode):
         else:
             img_true = img_true.reshape(-1)
             amp_true = img_true[torch.where(img_true!=0)]
-        amp_true = amp_true.reshape(amp_pred.shape)
+        amp_true = amp_true.reshape(amp_pred.shape[0], -1, 1)
+        amp_pred = amp_pred.reshape(amp_pred.shape[0], -1, 1)
 
+        matcher = build_matcher()
+        pred_ord, _ = zip(*matcher(amp_pred, amp_true))
+        amp_pred = [sort(amp_pred[v], pred_ord[v]) for v in range(len(amp_pred))]
+        amp_pred = torch.stack(amp_pred)
+
+        #amp_pred = torch.exp(amp_pred)#
         amp_loss = torch.nn.L1Loss()
         amp_loss = amp_loss(amp_pred, amp_true)
-        C = torch.stack((amp_pred[:5], amp_true[:5]), dim=1)
+        C = torch.stack((amp_pred[:5].squeeze(2), amp_true[:5].squeeze(2)), dim=1)
         rel_var = abs(amp_pred-amp_true)/amp_true
         rel_var = rel_var.mean().item()
         print("Amplitude Prediction: ")
         print("----------------------")
         print("Mean L1 Loss: ", amp_loss.item())
         print("Mean Relative Error: {:.2f}%".format(rel_var*1e2))
+        if train_conf["arch_name"].split("_")[0] == "CropUNet":
+            print("Rough estimate of actual Loss: ", amp_loss.item()-0.08)
+            print("Rough estimate of actual MRE: {:.2f}%".format((rel_var-0.24)*1e2))
         print("----------------------")
         print(C)
 
@@ -435,8 +445,8 @@ def create_inspection_plots(learn, train_conf, mode):
         print("\n")
         print('Threshold value: {:.2f} and Tolerance: {:.2f}'.format(n, tol))
         tpr, ppv = segmap_insp(seg_true, reshape_2d(seg_pred), n, tol)
-        print(' Hit Rate TPR: {} \n Precision PPV: {}'.format(tpr, ppv))
-        print('F1 Score: {}'.format(2*ppv*tpr/(tpr+ppv)))
+        print(' Hit Rate: {:.2f}% \n Precision: {:.2f}%'.format(1e2*tpr,1e2*ppv))
+        print('F1 Score: {:.4f}'.format(2*ppv*tpr/(tpr+ppv)))
 
 def segmap_insp(truth, pred, threshold, tolerance):
     thresh = torch.nn.Threshold(threshold-1e-4, 0)

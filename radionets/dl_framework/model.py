@@ -3,6 +3,7 @@ import numpy as np
 from torch import nn
 import torch.nn.functional as F
 from torch.nn.modules.utils import _pair
+from torchvision.transforms.functional import crop
 from math import sqrt
 from pathlib import Path
 from scipy.optimize import linear_sum_assignment
@@ -16,6 +17,41 @@ class Lambda(nn.Module):
 
     def forward(self, x):
         return self.func(x)
+
+
+class Crop(nn.Module):
+    def __init__(self, imgs, positions, size, out_size):
+        super().__init__()
+
+        self.imgs = imgs
+        self.positions = positions
+        self.size = size
+        self.out_size = out_size
+
+        self.halfsize = self.size//2
+        self.pad1 = torch.nn.ZeroPad2d((0, self.halfsize, 0, self.halfsize))
+        self.pad2 = torch.nn.ZeroPad2d((self.out_size-self.size)//2)
+
+    def forward(self):
+        bs = self.imgs.shape[0]
+        img, mx, my = self.positions
+
+        if bs != len(torch.unique(img)):
+            return None
+
+        x = self.pad1(self.imgs)
+        out = ()
+        for i in range(len(img)):
+            if mx[i] < self.halfsize:
+                mx[i] = self.halfsize
+            if my[i] < self.halfsize:
+                my[i] = self.halfsize
+            cropped = crop(
+                x[img[i]], top=mx[i]-self.halfsize, left=my[i]-self.halfsize, height=self.size, width=self.size
+            )
+            out = out + (self.pad2(cropped),)
+        out = torch.stack(out)
+        return out
 
 
 class HungarianMatcher(nn.Module):
@@ -158,6 +194,10 @@ def normalization(x):
     return torch.stack(norm)
 
 
+def log(x):
+    return torch.log(x)
+
+
 def fft(x):
     """
     Layer that performs a fast Fourier-Transformation.
@@ -191,6 +231,10 @@ def fft_(x):
 
 def unsqueeze1(x):
     return x.unsqueeze(1)
+
+
+def unsqueeze0(x):
+    return x.unsqueeze(0)
 
 
 def squeeze1(x):

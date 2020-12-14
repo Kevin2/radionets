@@ -85,6 +85,11 @@ def define_arch(arch_name, img_size):
             cnn = getattr(architecture, "Cnn_amp")()
         unet = getattr(architecture, "UNet_seg")() 
         arch = getattr(architecture, "MixedUNet")(unet, cnn)
+    elif arc[0] == "CropUNet":
+        n = int(arc[1])
+        cnn = getattr(architecture, "CNN_amp")()
+        unet = getattr(architecture, "UNet_seg")()
+        arch = getattr(architecture, "CropUNet")(unet, cnn, n)
     else:
         arch = getattr(architecture, arch_name)()
     return arch
