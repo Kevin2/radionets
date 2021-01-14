@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from time import process_time
 import matplotlib as mpl
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.pyplot as plt
@@ -380,9 +381,15 @@ def create_inspection_plots(learn, train_conf, mode):
     seg_true = seg_true.cpu()
 
     if mode == "train":
-        seg_pred = eval_model(img_test, learn.model.cpu())
+        img_test = img_test.cuda()
     elif mode == "evaluate":
-        seg_pred = eval_model(img_test, learn.model)
+        img_test = img_test.cuda()
+        learn.model = learn.model.cuda()
+    t1 = process_time()
+    seg_pred = eval_model(img_test, learn.model)
+    t2 = process_time()
+
+    seg_pred = seg_pred.cpu()
 
     if type(seg_pred)==tuple:
         amp_pred = seg_pred[1]
@@ -440,22 +447,78 @@ def create_inspection_plots(learn, train_conf, mode):
             save=True,
         )
 
+    tol = train_conf["tolerance"]
+    print('With Tolerance: {:.2f}'.format(tol))
     for n in 1 - np.linspace(0.5, 0.9, 6):
-        tol = 2**(1/2)
         print("\n")
-        print('Threshold value: {:.2f} and Tolerance: {:.2f}'.format(n, tol))
-        tpr, ppv = segmap_insp(seg_true, reshape_2d(seg_pred), n, tol)
+        print('Threshold value: {:.2f}'.format(n))
+        tpr, ppv, t3 = segmap_insp(seg_true, reshape_2d(seg_pred), n, tol)
         print(' Hit Rate: {:.2f}% \n Precision: {:.2f}%'.format(1e2*tpr,1e2*ppv))
         print('F1 Score: {:.4f}'.format(2*ppv*tpr/(tpr+ppv)))
+        print('GPU Time: ', t2-t1 + t3)
+
+    print('----------')
+    if train_conf["compare"]:
+        """
+        For constant number of sources:
+        """
+        t_s = process_time()
+        n = len(torch.where(seg_true[0]!=0)[0])
+        pred_hoeg = [hoegbom(img_test[i].cpu(), n) for i in range(test_size)]
+        pred_hoeg = torch.stack(pred_hoeg)
+        t_f = process_time()
+        prec = insp(seg_true, pred_hoeg, tol)
+        print('Precision: {:.2f}%'.format(1e2*prec))
+        print('CPU Time: ', t_f-t_s)
+
+def hoegbom(img, sources):
+    a = torch.clone(img)
+    preds =[]
+    for count in range(sources):
+        pos = list(np.unravel_index(np.argmax(a), a.shape))
+        preds.append(pos)
+        q = []
+        for i in [-1, 0, 1]:
+            for j in [-1, 0, 1]:
+                q.append([sum(x) for x in zip(pos, [i, j])])
+        for v in q:
+            v = [max(0, min(x, len(img)-1)) for x in v]
+            a[v] = 0
+    return torch.tensor(preds)
+
+def insp(truth, preds, tolerance):
+    i, x, y = torch.where(truth !=0)
+    true = torch.stack((x, y), dim=1).to(torch.float64)
+    true = true.reshape(preds.shape)
+
+    n = preds.shape[1]
+
+    TP = []
+
+    matcher = build_matcher()
+    matches = matcher(preds, true)
+
+    preds_ord, _ = zip(*matches)
+    pred = [sort(preds[v], preds_ord[v]) for v in range(len(preds))]
+    preds = torch.stack(pred).to(torch.float64)
+
+    d = [[torch.cdist(preds, true)[v, k, k] for k in range(n)] for v in range(len(true))]
+    d = torch.stack(sum(d, []))
+
+    TP = len(d[d<=tolerance])
+    return TP/(n*len(preds))
 
 def segmap_insp(truth, pred, threshold, tolerance):
+    t_s = process_time()
     thresh = torch.nn.Threshold(threshold-1e-4, 0)
     pred = thresh(pred)
 
-    i, x, y = torch.where(truth != 0)
     I, X, Y = torch.where(pred != 0)
-    tru_pos = torch.stack((x, y), dim=1).to(torch.float64)
     pre_pos = torch.stack((X, Y), dim=1).to(torch.float64)
+    t_f = process_time()
+
+    i, x, y = torch.where(truth != 0)
+    tru_pos = torch.stack((x, y), dim=1).to(torch.float64)
 
     TP = []
     matcher = build_matcher()
@@ -489,4 +552,4 @@ def segmap_insp(truth, pred, threshold, tolerance):
     TPR = TP/len(i)
     PPV = TP/len(I)
 
-    return TPR, PPV
+    return TPR, PPV, t_f-t_s

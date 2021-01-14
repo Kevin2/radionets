@@ -32,6 +32,8 @@ def read_config(config):
     train_conf["norm_path"] = config["paths"]["norm_path"]
 
     train_conf["num_tests"] = config["evaluation"]["num_tests"]
+    train_conf["compare"] = config["evaluation"]["compare"]
+    train_conf["tolerance"] = config["evaluation"]["tolerance"]
 
     train_conf["batch_mode"] = config["mode"]["batch_mode"]
     train_conf["gpu"] = config["mode"]["gpu"]
